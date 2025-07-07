@@ -126,14 +126,18 @@
           { text: "Deliver Pizza", action: () => { deliverPizza(); } }
         ]);
       } else {
+        let fail = Math.random() < 0.01;
         pizzaMan.money -= 150
         showOutput("Oh no! You burned the pizza. you still gave the pizza. the customer got cancer cus of your burned pizza. PAY THE HOSPITAL BILLS.");
         pizzaMan.hour++;
         setControls([
           { text: "Next Hour", action: () => { gameLoop(); } }
         ]);
-      }
+      }else {
+       showOutput("your boss walks in and fires you.")action: () => { dayEnd(); } }
+       ]);
     }
+    
 
     function deliverPizza() {
       showStatus();
