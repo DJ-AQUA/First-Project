@@ -1,4 +1,4 @@
-=<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -20,7 +20,7 @@
     <div id="output"></div>
     <div id="controls"></div>
   </div>
-
+  
 <script>
    // Game state
     let pizzaMan = {
@@ -29,12 +29,14 @@
       energy: 100,
       ordersCompleted: 0,
       hour: 9, // 9 AM
-      dayOver: false
+      dayOver: false,
+      promotion: false
     };
 
     function showStatus() {
       document.getElementById('status').textContent =
-        `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}   |   Time: ${pizzaMan.hour}:00`;
+        `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}   |   Time: ${pizzaMan.hour}:00` +
+        (pizzaMan.promotion ? "   |   🏅 Promoted!" : "");
     }
 
     function showOutput(text) {
@@ -60,7 +62,8 @@
         energy: 100,
         ordersCompleted: 0,
         hour: 9,
-        dayOver: false
+        dayOver: false,
+        promotion: false
       };
       askNameScreen();
     }
@@ -86,11 +89,28 @@
       }
       showStatus();
 
+      let promoBtn = {
+        text: pizzaMan.promotion ? "Promotion Purchased" : "Buy Promotion ($100)",
+        action: () => {},
+        disabled: pizzaMan.promotion || pizzaMan.money < 100
+      };
+      if (!pizzaMan.promotion && pizzaMan.money >= 100) {
+        promoBtn.action = () => {
+          pizzaMan.money -= 100;
+          pizzaMan.promotion = true;
+          showOutput("Congratulations! You got a promotion. You will now earn extra money for every delivery!");
+          setControls([
+            { text: "Continue", action: () => { gameLoop(); } }
+          ]);
+        };
+      }
+
       if (pizzaMan.energy < 35) {
         showOutput("You look tired. Maybe take a break?");
         setControls([
           { text: "Rest", action: () => { rest(); } },
-          { text: "End Day", action: () => { dayEnd(); } }
+          { text: "End Day", action: () => { dayEnd(); } },
+          promoBtn
         ]);
         return;
       }
@@ -100,7 +120,8 @@
         { text: "Accept Order", action: () => { takeOrder(); } },
         { text: "Decline Order", action: () => { declineOrder(); } },
         { text: "Rest", action: () => { rest(); } },
-        { text: "End Day", action: () => { dayEnd(); } }
+        { text: "End Day", action: () => { dayEnd(); } },
+        promoBtn
       ]);
     }
 
@@ -123,8 +144,8 @@
           { text: "Deliver Pizza", action: () => { deliverPizza(); } }
         ]);
       } else {
-        // Firing logic: 0.001 chance (1 in 1000)
-        if (Math.random() <= 0.001) {
+        // Firing logic: 0.01% chance (1 in 10,000)
+        if (Math.random() <= 0.0001) {
           showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!\nThe workday ends abruptly.");
           setControls([
             { text: "Play Again", action: () => { resetGame(); } }
@@ -144,18 +165,21 @@
     function deliverPizza() {
       showStatus();
       let tip = Math.floor(Math.random() * 20) + 3;
-      pizzaMan.money += 15 + tip;
-      pizzaMan.energy -= 5;
+      let baseEarnings = 15 + tip;
+      let promoBonus = pizzaMan.promotion ? 15 : 0;
+      pizzaMan.money += baseEarnings + promoBonus;
+      pizzaMan.energy -= 10;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
 
       let rushEvent = "";
       if (Math.random() < 0.4) {
         rushEvent = "\nUnexpected rush! You get an extra order but lose more energy.";
-        pizzaMan.energy -= 5;
+        pizzaMan.energy -= 10;
       }
 
-      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${rushEvent}`);
+      let promoMsg = pizzaMan.promotion ? `\nPromotion Bonus! +$${promoBonus}` : "";
+      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${promoMsg}${rushEvent}`);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
       ]);
@@ -189,7 +213,7 @@
         { text: "Play Again", action: () => { resetGame(); } }
       ]);
     }
-
+    
     // Start game on load
     askNameScreen();
   </script>
