@@ -145,14 +145,14 @@
       showStatus();
       let tip = Math.floor(Math.random() * 20) + 3;
       pizzaMan.money += 15 + tip;
-      pizzaMan.energy -= 10;
+      pizzaMan.energy -= 5;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
 
       let rushEvent = "";
       if (Math.random() < 0.4) {
         rushEvent = "\nUnexpected rush! You get an extra order but lose more energy.";
-        pizzaMan.energy -= 10;
+        pizzaMan.energy -= 5;
       }
 
       showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${rushEvent}`);
