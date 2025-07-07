@@ -1,1 +1,199 @@
+=<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pizza Life: A Day in the Life of a Pizza Maker</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fffbe7; margin: 0; padding: 0; }
+    #game-container { max-width: 500px; margin: auto; padding: 2em; background: #fff3c1; border-radius: 10px; margin-top: 3em; box-shadow: 0 4px 12px #0002; }
+    #output { min-height: 180px; white-space: pre-wrap; margin-bottom: 1em; }
+    button { margin: 0.3em 0.5em 0.3em 0; padding: 0.5em 1.5em; border-radius: 5px; border: none; background: #ff9e3d; color: #fff; font-size: 1em; cursor: pointer; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    #status { background: #ffe4a4; border-radius: 8px; padding: 0.7em; margin-bottom: 1em; }
+    h1 { text-align: center; color: #d06300; }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>🍕 Pizza Life 🍕</h1>
+    <div id="status"></div>
+    <div id="output"></div>
+    <div id="controls"></div>
+  </div>
 
+<script>
+   // Game state
+    let pizzaMan = {
+      name: '',
+      money: 150,
+      energy: 100,
+      ordersCompleted: 0,
+      hour: 9, // 9 AM
+      dayOver: false
+    };
+
+    function showStatus() {
+      document.getElementById('status').textContent =
+        `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}   |   Time: ${pizzaMan.hour}:00`;
+    }
+
+    function showOutput(text) {
+      document.getElementById('output').textContent = text;
+    }
+
+    function setControls(buttons) {
+      const controlsDiv = document.getElementById('controls');
+      controlsDiv.innerHTML = '';
+      buttons.forEach(btn => {
+        const button = document.createElement('button');
+        button.textContent = btn.text;
+        button.onclick = btn.action;
+        if (btn.disabled) button.disabled = true;
+        controlsDiv.appendChild(button);
+      });
+    }
+
+    function resetGame() {
+      pizzaMan = {
+        name: '',
+        money: 150,
+        energy: 100,
+        ordersCompleted: 0,
+        hour: 9,
+        dayOver: false
+      };
+      askNameScreen();
+    }
+
+    function askNameScreen() {
+      showStatus();
+      showOutput("Welcome to Pizza Life: A Day in the Life of a pizza maker!\nWhat's your name, Pizza Man?");
+      const controlsDiv = document.getElementById('controls');
+      controlsDiv.innerHTML = '<input type="text" id="nameInput" placeholder="Your name" style="font-size:1em;"> <button id="startBtn">Start</button>';
+      document.getElementById('startBtn').onclick = () => {
+        const val = document.getElementById('nameInput').value.trim();
+        if (val.length > 0) {
+          pizzaMan.name = val;
+          gameLoop();
+        }
+      };
+    }
+
+    function gameLoop() {
+      if (pizzaMan.hour > 22 || pizzaMan.dayOver) {
+        dayEnd();
+        return;
+      }
+      showStatus();
+
+      if (pizzaMan.energy < 35) {
+        showOutput("You look tired. Maybe take a break?");
+        setControls([
+          { text: "Rest", action: () => { rest(); } },
+          { text: "End Day", action: () => { dayEnd(); } }
+        ]);
+        return;
+      }
+
+      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.`);
+      setControls([
+        { text: "Accept Order", action: () => { takeOrder(); } },
+        { text: "Decline Order", action: () => { declineOrder(); } },
+        { text: "Rest", action: () => { rest(); } },
+        { text: "End Day", action: () => { dayEnd(); } }
+      ]);
+    }
+
+    function takeOrder() {
+      showStatus();
+      showOutput("Order accepted!\nNow, make the pizza.");
+      setControls([
+        { text: "Make Pizza", action: () => { makePizza(); } },
+        { text: "Rest", action: () => { rest(); } }
+      ]);
+    }
+
+    function makePizza() {
+      showStatus();
+      let success = Math.random() < 0.85;
+      pizzaMan.energy -= 5;
+      if (success) {
+        showOutput("Pizza made successfully!\nTime to deliver it!");
+        setControls([
+          { text: "Deliver Pizza", action: () => { deliverPizza(); } }
+        ]);
+      } else {
+        // Firing logic: 0.01 chance (1 in 100)
+        if (Math.random() <= 0.01) {
+          showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!\nThe workday ends abruptly.");
+          showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!")
+          \nThe workday ends abruptly.
+          setControls([
+            { text: "Play Again", action: () => { resetGame(); } }
+          ]);
+          pizzaMan.dayOver = true;
+        } else {
+          pizzaMan.money -= 150;
+          showOutput("Oh no! You burned the pizza. You still gave the pizza. The customer got sick. PAY THE HOSPITAL BILLS!");
+          pizzaMan.hour++;
+          setControls([
+            { text: "Next Hour", action: () => { gameLoop(); } }
+          ]);
+        }
+      }
+    }
+
+    function deliverPizza() {
+      showStatus();
+      let tip = Math.floor(Math.random() * 20) + 3;
+      pizzaMan.money += 15 + tip;
+      pizzaMan.energy -= 10;
+      pizzaMan.ordersCompleted += 1;
+      pizzaMan.hour++;
+
+      let rushEvent = "";
+      if (Math.random() < 0.4) {
+        rushEvent = "\nUnexpected rush! You get an extra order but lose more energy.";
+        pizzaMan.energy -= 10;
+      }
+
+      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${rushEvent}`);
+      setControls([
+        { text: "Next Hour", action: () => { gameLoop(); } }
+      ]);
+    }
+
+    function rest() {
+      showStatus();
+      pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
+      pizzaMan.hour++;
+      showOutput("You take a break and feel refreshed!");
+      setControls([
+        { text: "Next Hour", action: () => { gameLoop(); } }
+      ]);
+    }
+
+    function declineOrder() {
+      pizzaMan.energy -= 0;
+      pizzaMan.money += 10;
+      pizzaMan.hour++;
+      showOutput("Order declined. The customer is happy you did not make her fat. She gives you $10.");
+      setControls([
+        { text: "Next Hour", action: () => { gameLoop(); } }
+      ]);
+    }
+
+    function dayEnd() {
+      pizzaMan.dayOver = true;
+      showStatus();
+      showOutput(`The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`);
+      setControls([
+        { text: "Play Again", action: () => { resetGame(); } }
+      ]);
+    }
+
+    // Start game on load
+    askNameScreen();
+  </script>
+</body>
+</html>
