@@ -88,7 +88,7 @@
       }
       showStatus();
 
-      if (pizzaMan.energy < 20) {
+      if (pizzaMan.energy < ) 35{
         showOutput("You look tired. Maybe take a break?");
         setControls([
           { text: "Rest", action: () => { rest(); } },
@@ -165,10 +165,11 @@
     }
 
     function declineOrder() {
-      pizzaMan.energy -= 5;
+      pizzaMan.energy -= 0;
       pizzaMan.hour++;
-      showOutput("Order declined. You lose a little energy from dealing with a grumpy customer.");
+      showOutput("Order declined. The customer is happy you did not make him fat.");
       setControls([
+        pizzaMan.money += 10
         { text: "Next Hour", action: () => { gameLoop(); } }
       ]);
     }
