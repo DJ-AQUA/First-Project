@@ -7,6 +7,7 @@
     body { font-family: Arial, sans-serif; background: #fffbe7; margin: 0; padding: 0; }
     #game-container { max-width: 500px; margin: auto; padding: 2em; background: #fff3c1; border-radius: 10px; margin-top: 3em; box-shadow: 0 4px 12px #0002; }
     #output { min-height: 180px; white-space: pre-wrap; margin-bottom: 1em; }
+    #pizza-image { display: block; margin: 1em auto; }
     button { margin: 0.3em 0.5em 0.3em 0; padding: 0.5em 1.5em; border-radius: 5px; border: none; background: #ff9e3d; color: #fff; font-size: 1em; cursor: pointer; }
     button:disabled { background: #ccc; cursor: not-allowed; }
     #status { background: #ffe4a4; border-radius: 8px; padding: 0.7em; margin-bottom: 1em; }
@@ -39,8 +40,23 @@
         (pizzaMan.promotion ? "   |   🏅 Promoted!" : "");
     }
 
-    function showOutput(text) {
-      document.getElementById('output').textContent = text;
+    function showOutput(text, opts = {}) {
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = ""; // Clear previous output
+      // If opts.imgSrc is provided, show the image first
+      if (opts.imgSrc) {
+        const img = document.createElement('img');
+        img.id = 'pizza-image';
+        img.src = opts.imgSrc;
+        img.alt = "Pizza";
+        img.width = 128;
+        img.height = 128;
+        outputDiv.appendChild(img);
+      }
+      // Add text below the image, if any
+      const txt = document.createElement('div');
+      txt.textContent = text;
+      outputDiv.appendChild(txt);
     }
 
     function setControls(buttons) {
@@ -139,7 +155,8 @@
       let success = Math.random() < 0.85;
       pizzaMan.energy -= 5;
       if (success) {
-        showOutput("Pizza made successfully!\nTime to deliver it!");
+        // Show pizza image on successful pizza!
+        showOutput("Pizza made successfully!\nTime to deliver it!", { imgSrc: "image1" });
         setControls([
           { text: "Deliver Pizza", action: () => { deliverPizza(); } }
         ]);
