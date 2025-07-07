@@ -166,10 +166,10 @@
 
     function declineOrder() {
       pizzaMan.energy -= 0;
+      pizzaMan.money += 10
       pizzaMan.hour++;
       showOutput("Order declined. The customer is happy you did not make him fat.");
       setControls([
-        pizzaMan.money += 10
         { text: "Next Hour", action: () => { gameLoop(); } }
       ]);
     }
