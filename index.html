@@ -118,7 +118,7 @@
 
     function makePizza() {
       showStatus();
-      let success = Math.random() < 0.75;
+      let success = Math.random() < 0.85;
       pizzaMan.energy -= 5;
       if (success) {
         showOutput("Pizza made successfully!\nTime to deliver it!");
@@ -126,7 +126,8 @@
           { text: "Deliver Pizza", action: () => { deliverPizza(); } }
         ]);
       } else {
-        showOutput("Oh no! You burned the pizza. No money for this order.");
+        pizzaMan.money -= 50
+        showOutput("Oh no! You burned the pizza. you still gave the pizza. the customer got cancer cus of your burned pizza. PAY THE HOSPITAL BILLS.");
         pizzaMan.hour++;
         setControls([
           { text: "Next Hour", action: () => { gameLoop(); } }
