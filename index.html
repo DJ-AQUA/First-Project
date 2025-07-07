@@ -15,7 +15,7 @@
 </head>
 <body>
   <div id="game-container">
-    <h1>🍕 Pizza Man 🍕</h1>
+    <h1>🍕 Pizza Life 🍕</h1>
     <div id="status"></div>
     <div id="output"></div>
     <div id="controls"></div>
@@ -119,7 +119,7 @@
     function makePizza() {
       showStatus();
       let success = Math.random() < 0.75;
-      pizzaMan.energy -= 15;
+      pizzaMan.energy -= 5;
       if (success) {
         showOutput("Pizza made successfully!\nTime to deliver it!");
         setControls([
@@ -138,7 +138,7 @@
       showStatus();
       let tip = Math.floor(Math.random() * 8) + 3;
       pizzaMan.money += 15 + tip;
-      pizzaMan.energy -= 15;
+      pizzaMan.energy -= 10;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
 
@@ -156,7 +156,7 @@
 
     function rest() {
       showStatus();
-      pizzaMan.energy = Math.min(100, pizzaMan.energy + 30);
+      pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
       pizzaMan.hour++;
       showOutput("You take a break and feel refreshed!");
       setControls([
