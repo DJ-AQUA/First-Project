@@ -24,7 +24,7 @@
     // Game state
     let pizzaMan = {
       name: '',
-      money: 0,
+      money: 150,
       energy: 100,
       ordersCompleted: 0,
       hour: 9, // 9 AM
@@ -56,7 +56,7 @@
     function resetGame() {
       pizzaMan = {
         name: '',
-        money: 0,
+        money: 150,
         energy: 100,
         ordersCompleted: 0,
         hour: 9,
@@ -126,7 +126,7 @@
           { text: "Deliver Pizza", action: () => { deliverPizza(); } }
         ]);
       } else {
-        pizzaMan.money -= 50
+        pizzaMan.money -= 150
         showOutput("Oh no! You burned the pizza. you still gave the pizza. the customer got cancer cus of your burned pizza. PAY THE HOSPITAL BILLS.");
         pizzaMan.hour++;
         setControls([
