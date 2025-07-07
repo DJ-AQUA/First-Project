@@ -28,13 +28,12 @@
       money: 150,
       energy: 100,
       ordersCompleted: 0,
-      hour: 9, // 9 AM
       dayOver: false
     };
 
     function showStatus() {
       document.getElementById('status').textContent =
-        `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}   |   Time: ${pizzaMan.hour}:00`;
+        `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}
     }
 
     function showOutput(text) {
@@ -59,7 +58,6 @@
         money: 150,
         energy: 100,
         ordersCompleted: 0,
-        hour: 9,
         dayOver: false
       };
       askNameScreen();
@@ -80,7 +78,7 @@
     }
 
     function gameLoop() {
-      if (pizzaMan.hour > 22 || pizzaMan.dayOver) {
+     | pizzaMan.dayOver) {
         dayEnd();
         return;
       }
@@ -134,7 +132,6 @@
         } else {
           pizzaMan.money -= 150;
           showOutput("Oh no! You burned the pizza. You still gave the pizza. The customer got sick. PAY THE HOSPITAL BILLS!");
-          pizzaMan.hour++;
           setControls([
             { text: "Next Hour", action: () => { gameLoop(); } }
           ]);
@@ -165,7 +162,6 @@
     function rest() {
       showStatus();
       pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
-      pizzaMan.hour++;
       showOutput("You take a break and feel refreshed!");
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
@@ -175,7 +171,6 @@
     function declineOrder() {
       pizzaMan.energy -= 0;
       pizzaMan.money += 10;
-      pizzaMan.hour++;
       showOutput("Order declined. The customer is happy you did not make her fat. She gives you $10.");
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
