@@ -116,27 +116,42 @@
       ]);
     }
 
+    function takeOrder() {
+      showStatus();
+      showOutput("Order accepted!\nNow, make the pizza.");
+      setControls([
+        { text: "Make Pizza", action: () => { makePizza(); } },
+        { text: "Rest", action: () => { rest(); } }
+      ]);
+    }
+
     function makePizza() {
       showStatus();
-      let success = Math.random() < 0.85;
-      pizzaMan.energy -= 5;
+      let success = Math.random() < 0.75;
+      pizzaMan.energy -= 15;
       if (success) {
         showOutput("Pizza made successfully!\nTime to deliver it!");
         setControls([
           { text: "Deliver Pizza", action: () => { deliverPizza(); } }
         ]);
       } else {
-        let fail = Math.random() < 0.01;
-        pizzaMan.money -= 150
-        showOutput("Oh no! You burned the pizza. you still gave the pizza. the customer got cancer cus of your burned pizza. PAY THE HOSPITAL BILLS.");
-        pizzaMan.hour++;
-        setControls([
-          { text: "Next Hour", action: () => { gameLoop(); } }
-        ]);
-      }else {
-       showOutput("your boss walks in and fires you.")action: () => { dayEnd(); } }
-       ]);
-    }
+        // Firing logic: 0.01% chance (1 in 10,000)
+        if (Math.random() <= 0.0001) {
+          showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!\nThe workday ends abruptly.");
+          setControls([
+            { text: "Play Again", action: () => { resetGame(); } }
+          ]);
+          pizzaMan.dayOver = true;
+        } else {
+          pizzaMan.money -= 150
+          showOutput("Oh no! You burned the pizza. you still gave the pizza. The customer got cancer. PAY THE HOSPITAL BILLS!");
+          pizzaMan.hour++;
+          setControls([
+            { text: "Next Hour", action: () => { gameLoop(); } }
+          ]);
+        }
+      }
+    } } 
     
 
     function deliverPizza() {
