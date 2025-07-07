@@ -1,3 +1,8 @@
+// Start the game
+    askNameScreen();
+  </script>
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -193,7 +198,7 @@
       ]);
     }
 
-    function dayEnd() {
+   function dayEnd() {
       pizzaMan.dayOver = true;
       showStatus();
       showOutput(`The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`);
@@ -204,5 +209,6 @@
 
     // Start the game
     askNameScreen();
+  </script>
 </body>
 </html>
