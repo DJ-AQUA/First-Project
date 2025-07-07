@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pizza Life: A Day in the Life of a pizza maker</title>
+  <title>Pizza Life: A Day in the Life of a Pizza Maker</title>
   <style>
     body { font-family: Arial, sans-serif; background: #fffbe7; margin: 0; padding: 0; }
     #game-container { max-width: 500px; margin: auto; padding: 2em; background: #fff3c1; border-radius: 10px; margin-top: 3em; box-shadow: 0 4px 12px #0002; }
@@ -29,8 +29,7 @@
       energy: 100,
       ordersCompleted: 0,
       hour: 9, // 9 AM
-      dayOver: false,
-      askName: true
+      dayOver: false
     };
 
     function showStatus() {
@@ -61,8 +60,7 @@
         energy: 100,
         ordersCompleted: 0,
         hour: 9,
-        dayOver: false,
-        askName: true
+        dayOver: false
       };
       askNameScreen();
     }
@@ -76,14 +74,13 @@
         const val = document.getElementById('nameInput').value.trim();
         if (val.length > 0) {
           pizzaMan.name = val;
-          pizzaMan.askName = false;
           gameLoop();
         }
       };
     }
 
     function gameLoop() {
-      if (pizzaMan.hour > 22) {
+      if (pizzaMan.hour > 22 || pizzaMan.dayOver) {
         dayEnd();
         return;
       }
@@ -98,22 +95,12 @@
         return;
       }
 
-      // Main choices per hour
       showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.`);
       setControls([
         { text: "Accept Order", action: () => { takeOrder(); } },
         { text: "Decline Order", action: () => { declineOrder(); } },
         { text: "Rest", action: () => { rest(); } },
         { text: "End Day", action: () => { dayEnd(); } }
-      ]);
-    }
-
-    function takeOrder() {
-      showStatus();
-      showOutput("Order accepted!\nNow, make the pizza.");
-      setControls([
-        { text: "Make Pizza", action: () => { makePizza(); } },
-        { text: "Rest", action: () => { rest(); } }
       ]);
     }
 
@@ -136,23 +123,23 @@
           { text: "Deliver Pizza", action: () => { deliverPizza(); } }
         ]);
       } else {
-        // Firing logic: 0.01 chance (1 in 100)
-        if (Math.random() <= 0.01) {
+        // Firing logic: 0.01% chance (1 in 10,000)
+        if (Math.random() <= 0.0001) {
           showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!\nThe workday ends abruptly.");
           setControls([
             { text: "Play Again", action: () => { resetGame(); } }
           ]);
           pizzaMan.dayOver = true;
         } else {
-          pizzaMan.money -= 150
-          showOutput("Oh no! You burned the pizza. you still gave the pizza. The customer got cancer. PAY THE HOSPITAL BILLS!");
+          pizzaMan.money -= 150;
+          showOutput("Oh no! You burned the pizza. You still gave the pizza. The customer got sick. PAY THE HOSPITAL BILLS!");
           pizzaMan.hour++;
           setControls([
             { text: "Next Hour", action: () => { gameLoop(); } }
           ]);
         }
       }
-    
+    }
 
     function deliverPizza() {
       showStatus();
@@ -186,15 +173,15 @@
 
     function declineOrder() {
       pizzaMan.energy -= 0;
-      pizzaMan.money += 10
+      pizzaMan.money += 10;
       pizzaMan.hour++;
-      showOutput("Order declined. The customer is happy you did not make her fat she gives you $10.");
+      showOutput("Order declined. The customer is happy you did not make her fat. She gives you $10.");
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
       ]);
     }
 
-   function dayEnd() {
+    function dayEnd() {
       pizzaMan.dayOver = true;
       showStatus();
       showOutput(`The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`);
@@ -202,10 +189,9 @@
         { text: "Play Again", action: () => { resetGame(); } }
       ]);
     }
- }    
-// start game
-       askNameScreen();   
-
+    
+    // Start game on load
+    askNameScreen();
   </script>
 </body>
 </html>
