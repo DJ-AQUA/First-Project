@@ -136,14 +136,14 @@
 
     function deliverPizza() {
       showStatus();
-      let tip = Math.floor(Math.random() * 8) + 3;
+      let tip = Math.floor(Math.random() * 20) + 3;
       pizzaMan.money += 15 + tip;
       pizzaMan.energy -= 10;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
 
       let rushEvent = "";
-      if (Math.random() < 0.2) {
+      if (Math.random() < 0.4) {
         rushEvent = "\nUnexpected rush! You get an extra order but lose more energy.";
         pizzaMan.energy -= 10;
       }
