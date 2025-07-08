@@ -12,6 +12,8 @@
     button:disabled { background: #ccc; cursor: not-allowed; }
     #status { background: #ffe4a4; border-radius: 8px; padding: 0.7em; margin-bottom: 1em; }
     h1 { text-align: center; color: #d06300; }
+    #customise { margin-bottom: 1em; }
+    #customise label { margin-right: 1em; }
   </style>
 </head>
 <body>
@@ -19,6 +21,7 @@
     <h1>🍕 Pizza Life 🍕</h1>
     <div id="status"></div>
     <div id="output"></div>
+    <div id="customise"></div>
     <div id="controls"></div>
   </div>
   
@@ -31,8 +34,23 @@
       ordersCompleted: 0,
       hour: 9, // 9 AM
       dayOver: false,
-      promotion: false
+      promotion: false,
+      customToppings: [],
+      customSauce: 'Tomato'
     };
+
+    const TOPPINGS = [
+      { name: "Pepperoni", bonus: 5 },
+      { name: "Mushrooms", bonus: 3 },
+      { name: "Onions", bonus: 2 },
+      { name: "Pineapple", bonus: 10 },
+      { name: "Olives", bonus: 4 }
+    ];
+    const SAUCES = [
+      { name: "Tomato", bonus: 0 },
+      { name: "BBQ", bonus: 7 },
+      { name: "White Sauce", bonus: 4 }
+    ];
 
     function showStatus() {
       document.getElementById('status').textContent =
@@ -49,8 +67,8 @@
         img.id = 'pizza-image';
         img.src = opts.imgSrc;
         img.alt = "Pizza";
-        img.width = 2;
-        img.height = 2;
+        img.width = 128;
+        img.height = 128;
         outputDiv.appendChild(img);
       }
       // Add text below the image, if any
@@ -71,6 +89,60 @@
       });
     }
 
+    function setCustomiseControls(disabled) {
+      const customiseDiv = document.getElementById('customise');
+      customiseDiv.innerHTML = '';
+      const form = document.createElement('form');
+
+      // Sauce selection
+      const sauceLabel = document.createElement('label');
+      sauceLabel.textContent = 'Sauce:';
+      form.appendChild(sauceLabel);
+
+      SAUCES.forEach(sauce => {
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'sauce';
+        radio.value = sauce.name;
+        if (pizzaMan.customSauce === sauce.name) radio.checked = true;
+        radio.disabled = !!disabled;
+        radio.onchange = () => {
+          pizzaMan.customSauce = sauce.name;
+        };
+        form.appendChild(radio);
+        const lbl = document.createElement('span');
+        lbl.textContent = sauce.name;
+        form.appendChild(lbl);
+      });
+
+      // Toppings selection
+      const toppingsLabel = document.createElement('label');
+      toppingsLabel.textContent = 'Toppings:';
+      toppingsLabel.style.marginLeft = '1em';
+      form.appendChild(toppingsLabel);
+
+      TOPPINGS.forEach(topping => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = topping.name;
+        checkbox.checked = pizzaMan.customToppings.includes(topping.name);
+        checkbox.disabled = !!disabled;
+        checkbox.onchange = () => {
+          if (checkbox.checked) {
+            pizzaMan.customToppings.push(topping.name);
+          } else {
+            pizzaMan.customToppings = pizzaMan.customToppings.filter(t => t !== topping.name);
+          }
+        };
+        form.appendChild(checkbox);
+        const lbl = document.createElement('span');
+        lbl.textContent = topping.name;
+        form.appendChild(lbl);
+      });
+
+      customiseDiv.appendChild(form);
+    }
+
     function resetGame() {
       pizzaMan = {
         name: '',
@@ -79,7 +151,9 @@
         ordersCompleted: 0,
         hour: 9,
         dayOver: false,
-        promotion: false
+        promotion: false,
+        customToppings: [],
+        customSauce: 'Tomato'
       };
       askNameScreen();
     }
@@ -87,6 +161,7 @@
     function askNameScreen() {
       showStatus();
       showOutput("Welcome to Pizza Life: A Day in the Life of a pizza maker!\nWhat's your name, Pizza Man?");
+      document.getElementById('customise').innerHTML = '';
       const controlsDiv = document.getElementById('controls');
       controlsDiv.innerHTML = '<input type="text" id="nameInput" placeholder="Your name" style="font-size:1em;"> <button id="startBtn">Start</button>';
       document.getElementById('startBtn').onclick = () => {
@@ -115,11 +190,14 @@
           pizzaMan.money -= 100;
           pizzaMan.promotion = true;
           showOutput("Congratulations! You got a promotion. You will now earn extra money for every delivery!");
+          setCustomiseControls(true);
           setControls([
             { text: "Continue", action: () => { gameLoop(); } }
           ]);
         };
       }
+
+      setCustomiseControls(false);
 
       if (pizzaMan.energy < 35) {
         showOutput("You look tired. Maybe take a break?");
@@ -131,7 +209,7 @@
         return;
       }
 
-      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.`);
+      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.\nCustomise your pizza below for possible bonuses!`);
       setControls([
         { text: "Accept Order", action: () => { takeOrder(); } },
         { text: "Decline Order", action: () => { declineOrder(); } },
@@ -144,10 +222,31 @@
     function takeOrder() {
       showStatus();
       showOutput("Order accepted!\nNow, make the pizza.");
+      setCustomiseControls(true);
       setControls([
         { text: "Make Pizza", action: () => { makePizza(); } },
         { text: "Rest", action: () => { rest(); } }
       ]);
+    }
+
+    function calculateBonus() {
+      let bonus = 0;
+      // Sauce bonus
+      let sauceObj = SAUCES.find(s => s.name === pizzaMan.customSauce);
+      if (sauceObj) bonus += sauceObj.bonus;
+
+      // Topping bonuses (sum, max 3 toppings for bonus)
+      let toppingCount = 0;
+      pizzaMan.customToppings.forEach(tn => {
+        if (toppingCount < 3) {
+          let top = TOPPINGS.find(t => t.name === tn);
+          if (top) {
+            bonus += top.bonus;
+            toppingCount++;
+          }
+        }
+      });
+      return bonus;
     }
 
     function makePizza() {
@@ -156,14 +255,21 @@
       pizzaMan.energy -= 5;
       if (success) {
         // Show pizza image on successful pizza!
-        showOutput("Pizza made successfully!\nTime to deliver it!", { imgSrc: "image1" });
+        let bonus = calculateBonus();
+        let bonusMsg = "";
+        if (bonus > 0) bonusMsg = `\nPizza Customisation Bonus! +$${bonus}`;
+        showOutput(
+          "Pizza made successfully!\nTime to deliver it!" + bonusMsg,
+          { imgSrc: "image1" }
+        );
         setControls([
-          { text: "Deliver Pizza", action: () => { deliverPizza(); } }
+          { text: "Deliver Pizza", action: () => { deliverPizza(bonus); } }
         ]);
       } else {
         // Firing logic: 0.01% chance (1 in 10,000)
         if (Math.random() <= 0.0001) {
           showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!\nThe workday ends abruptly.");
+          setCustomiseControls(true);
           setControls([
             { text: "Play Again", action: () => { resetGame(); } }
           ]);
@@ -172,6 +278,7 @@
           pizzaMan.money -= 150;
           showOutput("Oh no! You burned the pizza. You still gave the pizza. The customer got sick. PAY THE HOSPITAL BILLS!");
           pizzaMan.hour++;
+          setCustomiseControls(true);
           setControls([
             { text: "Next Hour", action: () => { gameLoop(); } }
           ]);
@@ -179,12 +286,12 @@
       }
     }
 
-    function deliverPizza() {
+    function deliverPizza(customBonus = 0) {
       showStatus();
       let tip = Math.floor(Math.random() * 20) + 3;
       let baseEarnings = 15 + tip;
       let promoBonus = pizzaMan.promotion ? 15 : 0;
-      pizzaMan.money += baseEarnings + promoBonus;
+      pizzaMan.money += baseEarnings + promoBonus + customBonus;
       pizzaMan.energy -= 10;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
@@ -196,7 +303,9 @@
       }
 
       let promoMsg = pizzaMan.promotion ? `\nPromotion Bonus! +$${promoBonus}` : "";
-      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${promoMsg}${rushEvent}`);
+      let customMsg = customBonus > 0 ? `\nCustom Pizza Bonus! +$${customBonus}` : "";
+      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${promoMsg}${customMsg}${rushEvent}`);
+      setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
       ]);
@@ -207,6 +316,7 @@
       pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
       pizzaMan.hour++;
       showOutput("You take a break and feel refreshed!");
+      setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
       ]);
@@ -217,6 +327,7 @@
       pizzaMan.money += 10;
       pizzaMan.hour++;
       showOutput("Order declined. The customer is happy you did not make her fat. She gives you $10.");
+      setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
       ]);
@@ -226,6 +337,7 @@
       pizzaMan.dayOver = true;
       showStatus();
       showOutput(`The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`);
+      setCustomiseControls(true);
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
       ]);
