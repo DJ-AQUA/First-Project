@@ -14,6 +14,11 @@
     h1 { text-align: center; color: #d06300; }
     #customise { margin-bottom: 1em; }
     #customise label { margin-right: 1em; }
+    #shop { margin-bottom: 1em; }
+    #shop h3 { margin-bottom: 0.2em; }
+    #shop ul { padding-left: 1.2em; }
+    #shop li { margin-bottom: 0.2em; }
+    #shop .owned { color: #33a333; }
   </style>
 </head>
 <body>
@@ -21,12 +26,38 @@
     <h1>🍕 Pizza Life 🍕</h1>
     <div id="status"></div>
     <div id="output"></div>
+    <div id="shop"></div>
     <div id="customise"></div>
     <div id="controls"></div>
   </div>
   
 <script>
-   // Game state
+    // Upgrades available in the shop
+    const UPGRADES = [
+      {
+        id: "oven",
+        name: "Better Oven",
+        cost: 120,
+        desc: "Reduces chance of burning pizza to 5%",
+        effect: (state) => { state.burnChance = 0.05; }
+      },
+      {
+        id: "shoes",
+        name: "Comfy Shoes",
+        cost: 80,
+        desc: "Reduces energy lost on delivery by 5",
+        effect: (state) => { state.deliveryEnergyCost = 5; }
+      },
+      {
+        id: "box",
+        name: "Fancy Box",
+        cost: 100,
+        desc: "Earn +$10 for each delivery",
+        effect: (state) => { state.boxBonus = 10; }
+      }
+    ];
+
+    // Game state
     let pizzaMan = {
       name: '',
       money: 150,
@@ -36,23 +67,28 @@
       dayOver: false,
       promotion: false,
       customToppings: [],
-      customSauce: 'Tomato'
+      customSauce: 'Tomato',
+      upgrades: [],
+      // upgrade effects (default values)
+      burnChance: 0.15, // default 15% burn
+      deliveryEnergyCost: 10, // default 10
+      boxBonus: 0,
+      // Special endings flags
+      mayorDelivered: false,
+      spilledSauce: false
     };
 
     const TOPPINGS = [
-      { name: "Pepperoni", bonus: 7 },
-      { name: "Mushrooms", bonus: 6 },
-      { name: "Onions", bonus: 10 },
-      { name: "Pineapple", bonus: 0 },
-      { name: "Blue cheese (MAX)", bonus: 84 },
-      { name: "Olives", bonus: 2 }
+      { name: "Pepperoni", bonus: 5 },
+      { name: "Mushrooms", bonus: 3 },
+      { name: "Onions", bonus: 2 },
+      { name: "Pineapple", bonus: 10 },
+      { name: "Olives", bonus: 4 }
     ];
     const SAUCES = [
-      { name: "Tomato", bonus: 1 },
+      { name: "Tomato", bonus: 0 },
       { name: "BBQ", bonus: 7 },
-      { name: "Just Cheese", bonus: 4 },
-      { name: "Ketchup (MAX)", bonus: 11 },
-      { name: "White Sauce", bonus: 0 }
+      { name: "White Sauce", bonus: 4 }
     ];
 
     function showStatus() {
@@ -70,8 +106,8 @@
         img.id = 'pizza-image';
         img.src = opts.imgSrc;
         img.alt = "Pizza";
-        img.width = 2;
-        img.height = 2;
+        img.width = 128;
+        img.height = 128;
         outputDiv.appendChild(img);
       }
       // Add text below the image, if any
@@ -146,6 +182,39 @@
       customiseDiv.appendChild(form);
     }
 
+    function setShopControls() {
+      const shopDiv = document.getElementById('shop');
+      shopDiv.innerHTML = `<h3>🛒 Shop Upgrades</h3><ul></ul>`;
+      const list = shopDiv.querySelector('ul');
+      UPGRADES.forEach(upg => {
+        const li = document.createElement('li');
+        const owned = pizzaMan.upgrades.includes(upg.id);
+        li.innerHTML = `<b>${upg.name}</b> - $${upg.cost} &mdash; ${upg.desc}
+          ${owned ? '<span class="owned">[Owned]</span>' : ''}
+        `;
+        if (!owned) {
+          const btn = document.createElement('button');
+          btn.textContent = "Buy";
+          btn.disabled = pizzaMan.money < upg.cost;
+          btn.onclick = () => {
+            pizzaMan.money -= upg.cost;
+            pizzaMan.upgrades.push(upg.id);
+            // Activate upgrade effect
+            upg.effect(pizzaMan);
+            showOutput(`You bought the ${upg.name}!`);
+            setShopControls();
+            showStatus();
+            setCustomiseControls(false);
+            setControls([
+              { text: "Continue", action: () => { gameLoop(); } }
+            ]);
+          };
+          li.appendChild(btn);
+        }
+        list.appendChild(li);
+      });
+    }
+
     function resetGame() {
       pizzaMan = {
         name: '',
@@ -156,7 +225,13 @@
         dayOver: false,
         promotion: false,
         customToppings: [],
-        customSauce: 'Tomato'
+        customSauce: 'Tomato',
+        upgrades: [],
+        burnChance: 0.15, // default 15% burn
+        deliveryEnergyCost: 10, // default 10
+        boxBonus: 0,
+        mayorDelivered: false,
+        spilledSauce: false
       };
       askNameScreen();
     }
@@ -165,6 +240,7 @@
       showStatus();
       showOutput("Welcome to Pizza Life: A Day in the Life of a pizza maker!\nWhat's your name, Pizza Man?");
       document.getElementById('customise').innerHTML = '';
+      document.getElementById('shop').innerHTML = '';
       const controlsDiv = document.getElementById('controls');
       controlsDiv.innerHTML = '<input type="text" id="nameInput" placeholder="Your name" style="font-size:1em;"> <button id="startBtn">Start</button>';
       document.getElementById('startBtn').onclick = () => {
@@ -177,7 +253,12 @@
     }
 
     function gameLoop() {
-      if (pizzaMan.hour > 22 || pizzaMan.dayOver) {
+      // Special ending check
+      if (pizzaMan.dayOver) {
+        specialEnding();
+        return;
+      }
+      if (pizzaMan.hour > 22) {
         dayEnd();
         return;
       }
@@ -193,6 +274,7 @@
           pizzaMan.money -= 100;
           pizzaMan.promotion = true;
           showOutput("Congratulations! You got a promotion. You will now earn extra money for every delivery!");
+          setShopControls();
           setCustomiseControls(true);
           setControls([
             { text: "Continue", action: () => { gameLoop(); } }
@@ -201,6 +283,7 @@
       }
 
       setCustomiseControls(false);
+      setShopControls();
 
       if (pizzaMan.energy < 35) {
         showOutput("You look tired. Maybe take a break?");
@@ -212,7 +295,7 @@
         return;
       }
 
-      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.\nCustomise your pizza below for possible bonuses!`);
+      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.\nCustomise your pizza below for possible bonuses!\nVisit the Shop to buy upgrades!`);
       setControls([
         { text: "Accept Order", action: () => { takeOrder(); } },
         { text: "Decline Order", action: () => { declineOrder(); } },
@@ -226,6 +309,7 @@
       showStatus();
       showOutput("Order accepted!\nNow, make the pizza.");
       setCustomiseControls(true);
+      setShopControls();
       setControls([
         { text: "Make Pizza", action: () => { makePizza(); } },
         { text: "Rest", action: () => { rest(); } }
@@ -252,9 +336,24 @@
       return bonus;
     }
 
+    // Special scenario: 2% chance for mayor delivery, 2% for sauce spill (once per play)
+    function checkSpecialDelivery() {
+      if (!pizzaMan.mayorDelivered && Math.random() < 0.02) {
+        pizzaMan.mayorDelivered = true;
+        pizzaMan.dayOver = true;
+        return "mayor";
+      }
+      if (!pizzaMan.spilledSauce && Math.random() < 0.02) {
+        pizzaMan.spilledSauce = true;
+        pizzaMan.dayOver = true;
+        return "sauce";
+      }
+      return null;
+    }
+
     function makePizza() {
       showStatus();
-      let success = Math.random() < 0.85;
+      let success = Math.random() >= pizzaMan.burnChance;
       pizzaMan.energy -= 5;
       if (success) {
         // Show pizza image on successful pizza!
@@ -265,6 +364,7 @@
           "Pizza made successfully!\nTime to deliver it!" + bonusMsg,
           { imgSrc: "image1" }
         );
+        setShopControls();
         setControls([
           { text: "Deliver Pizza", action: () => { deliverPizza(bonus); } }
         ]);
@@ -272,6 +372,7 @@
         // Firing logic: 0.01% chance (1 in 10,000)
         if (Math.random() <= 0.0001) {
           showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!\nThe workday ends abruptly.");
+          setShopControls();
           setCustomiseControls(true);
           setControls([
             { text: "Play Again", action: () => { resetGame(); } }
@@ -281,6 +382,7 @@
           pizzaMan.money -= 150;
           showOutput("Oh no! You burned the pizza. You still gave the pizza. The customer got sick. PAY THE HOSPITAL BILLS!");
           pizzaMan.hour++;
+          setShopControls();
           setCustomiseControls(true);
           setControls([
             { text: "Next Hour", action: () => { gameLoop(); } }
@@ -290,27 +392,55 @@
     }
 
     function deliverPizza(customBonus = 0) {
+      // Check for special endings first!
+      let special = checkSpecialDelivery();
+      if(special === "mayor") {
+        specialEnding(); return;
+      } else if(special === "sauce") {
+        specialEnding(); return;
+      }
+
       showStatus();
       let tip = Math.floor(Math.random() * 20) + 3;
       let baseEarnings = 15 + tip;
       let promoBonus = pizzaMan.promotion ? 15 : 0;
-      pizzaMan.money += baseEarnings + promoBonus + customBonus;
-      pizzaMan.energy -= 10;
+      let fancyBoxBonus = pizzaMan.boxBonus;
+      pizzaMan.money += baseEarnings + promoBonus + customBonus + fancyBoxBonus;
+      pizzaMan.energy -= pizzaMan.deliveryEnergyCost;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
 
       let rushEvent = "";
       if (Math.random() < 0.4) {
         rushEvent = "\nUnexpected rush! You get an extra order but lose more energy.";
-        pizzaMan.energy -= 10;
+        pizzaMan.energy -= pizzaMan.deliveryEnergyCost;
       }
 
       let promoMsg = pizzaMan.promotion ? `\nPromotion Bonus! +$${promoBonus}` : "";
       let customMsg = customBonus > 0 ? `\nCustom Pizza Bonus! +$${customBonus}` : "";
-      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${promoMsg}${customMsg}${rushEvent}`);
+      let boxMsg = fancyBoxBonus > 0 ? `\nFancy Box Bonus! +$${fancyBoxBonus}` : "";
+      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${promoMsg}${boxMsg}${customMsg}${rushEvent}`);
+      setShopControls();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
+      ]);
+    }
+
+    // Show special endings if triggered in gameLoop or after delivery
+    function specialEnding() {
+      let text = "";
+      if (pizzaMan.mayorDelivered) {
+        text = `SPECIAL ENDING: Mayor Delivery!\n\nYou delivered pizza to the mayor! The mayor loved your pizza so much that you were awarded the key to the city and free pizza for life. Congratulations, ${pizzaMan.name}!\n\nGAME OVER`;
+      } else if (pizzaMan.spilledSauce) {
+        text = `SPECIAL ENDING: Sauce Catastrophe!\n\nOh no! You tripped and spilled sauce everywhere, causing chaos in the pizzeria. The whole store had to close for a deep clean. Better luck (and balance) next time, ${pizzaMan.name}!\n\nGAME OVER`;
+      }
+      showStatus();
+      showOutput(text);
+      setShopControls();
+      setCustomiseControls(true);
+      setControls([
+        { text: "Play Again", action: () => { resetGame(); } }
       ]);
     }
 
@@ -319,6 +449,7 @@
       pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
       pizzaMan.hour++;
       showOutput("You take a break and feel refreshed!");
+      setShopControls();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
@@ -330,6 +461,7 @@
       pizzaMan.money += 10;
       pizzaMan.hour++;
       showOutput("Order declined. The customer is happy you did not make her fat. She gives you $10.");
+      setShopControls();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } }
@@ -340,6 +472,7 @@
       pizzaMan.dayOver = true;
       showStatus();
       showOutput(`The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`);
+      setShopControls();
       setCustomiseControls(true);
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
