@@ -180,6 +180,18 @@
       { name: "White Sauce", bonus: 4 }
     ];
 
+    // Load achievements from localStorage (never reset)
+    function getSavedAchievements() {
+      try {
+        return JSON.parse(localStorage.getItem('pizza_achievements') || '{}');
+      } catch {
+        return {};
+      }
+    }
+    function saveAchievements(unlocked) {
+      localStorage.setItem('pizza_achievements', JSON.stringify(unlocked));
+    }
+
     // --- Game state
     let pizzaMan = {};
     let sessionState = {};
@@ -216,13 +228,14 @@
         maxenergy: false,
         zenmaster: false,
         allbadges: false,
-        unlocked: {} // achievement id -> true
+        unlocked: getSavedAchievements() // use persisted achievements!
       };
     }
 
     function unlockAchievement(aid) {
       if (!pizzaMan.unlocked[aid]) {
         pizzaMan.unlocked[aid] = true;
+        saveAchievements(pizzaMan.unlocked);
         updateAchievementsFrame();
         // Alert for new achievement
         const found = ACHIEVEMENTS.find(a => a.id === aid);
@@ -238,6 +251,7 @@
       ) {
         pizzaMan.allbadges = true;
         pizzaMan.unlocked["allbadges"] = true;
+        saveAchievements(pizzaMan.unlocked);
         updateAchievementsFrame();
         showOutput("ULTIMATE ACHIEVEMENT!\nPizza God\nYou unlocked all achievements and eggs!");
         setControls([{ text: "Continue", action: () => { gameLoop(); } }]);
@@ -562,7 +576,7 @@
       showStatus();
       let success = Math.random() >= pizzaMan.burnChance;
       pizzaMan.energy -= 5;
-      if (!pizzaMan.firstPizza) {
+      if (!pizzaMan.firstPizza && !pizzaMan.unlocked["firstpizza"]) {
         pizzaMan.firstPizza = true;
         unlockAchievement("firstpizza");
       }
@@ -573,7 +587,7 @@
           pizzaMan.customToppings[0] === "Onions"
         ) {
           pizzaMan.onionPizzaCount++;
-          if (pizzaMan.onionPizzaCount === 3 && !pizzaMan.onionEasterEgg) {
+          if (pizzaMan.onionPizzaCount === 3 && !pizzaMan.onionEasterEgg && !pizzaMan.unlocked["onionlegend"]) {
             pizzaMan.onionEasterEgg = true;
             unlockAchievement("onionlegend");
             showOutput(
@@ -590,7 +604,7 @@
         if (
           pizzaMan.chosenNeighborhood.party &&
           pizzaMan.customToppings.includes("Pineapple") &&
-          !pizzaMan.pineappleParty
+          !pizzaMan.pineappleParty && !pizzaMan.unlocked["pineappleparty"]
         ) {
           pizzaMan.pineappleParty = true;
           unlockAchievement("pineappleparty");
@@ -658,19 +672,19 @@
       pizzaMan.hour++;
 
       // Ten orders achievement
-      if (pizzaMan.ordersCompleted === 10 && !pizzaMan.tenOrders) {
+      if (pizzaMan.ordersCompleted === 10 && !pizzaMan.tenOrders && !pizzaMan.unlocked["tenorders"]) {
         pizzaMan.tenOrders = true;
         unlockAchievement("tenorders");
       }
       // Money achievement
-      if (pizzaMan.money >= 500 && !pizzaMan.richman) {
+      if (pizzaMan.money >= 500 && !pizzaMan.richman && !pizzaMan.unlocked["richman"]) {
         pizzaMan.richman = true;
         unlockAchievement("richman");
       }
       // All upgrades
       if (
         pizzaMan.upgrades.length === UPGRADES.length &&
-        !pizzaMan.allUpgrades
+        !pizzaMan.allUpgrades && !pizzaMan.unlocked["allupgrades"]
       ) {
         pizzaMan.allUpgrades = true;
         unlockAchievement("allupgrades");
@@ -724,7 +738,7 @@
       let before = pizzaMan.energy;
       pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
       pizzaMan.hour++;
-      if (pizzaMan.energy === 100 && !pizzaMan.maxenergy) {
+      if (pizzaMan.energy === 100 && !pizzaMan.maxenergy && !pizzaMan.unlocked["maxenergy"]) {
         pizzaMan.maxenergy = true;
         unlockAchievement("maxenergy");
       }
@@ -746,7 +760,7 @@
       pizzaMan.declinedThisDay++;
 
       // EASTER EGG: Always declining
-      if (pizzaMan.alwaysDeclined === 5 && !pizzaMan.declineEasterEgg) {
+      if (pizzaMan.alwaysDeclined === 5 && !pizzaMan.declineEasterEgg && !pizzaMan.unlocked["refuser"]) {
         pizzaMan.declineEasterEgg = true;
         unlockAchievement("refuser");
         showOutput(
@@ -775,7 +789,7 @@
       if (
         pizzaMan.ordersCompleted === 0 &&
         pizzaMan.declinedThisDay > 0 &&
-        !pizzaMan.zenmaster
+        !pizzaMan.zenmaster && !pizzaMan.unlocked["noorders"]
       ) {
         pizzaMan.zenmaster = true;
         unlockAchievement("noorders");
