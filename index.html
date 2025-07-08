@@ -67,6 +67,46 @@
       #achievements-frame { width: 100%; margin: 0 0 1em 0; border-radius: 10px; }
       #game-container { border-radius: 10px; }
     }
+    #society-modal-bg {
+      display: none;
+      position: fixed;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+    #society-modal {
+      background: #222; color: #ffe4a4; padding: 2em 2em 1em 2em;
+      border-radius: 16px; max-width: 360px; min-width: 270px;
+      box-shadow: 0 8px 32px #000a;
+      font-size: 1.1em;
+      margin: 2em auto;
+      text-align: center;
+      position: relative;
+      z-index: 101;
+    }
+    #society-modal h4 {
+      color: #fadf00;
+      margin-bottom: 0.4em;
+      letter-spacing: 2px;
+    }
+    #society-modal button {
+      background: #313; color: #ffe4a4; border: 2px solid #fadf00;
+      margin-top: 1em;
+    }
+    #society-btn {
+      background: #222;
+      color: #fadf00;
+      border: 2px solid #fadf00;
+      margin-left: 0.2em;
+      margin-bottom: 0.8em;
+      font-size: 1.05em;
+      font-weight: bold;
+      letter-spacing: 1px;
+      transition: background 0.2s;
+    }
+    #society-btn:hover { background: #333; }
   </style>
 </head>
 <body>
@@ -78,13 +118,20 @@
     <div id="game-container">
       <h1>🍕 Pizza Life 🍕</h1>
       <div id="status"></div>
+      <button id="society-btn" style="display:none">🕵️‍♂️ Secret Society</button>
       <div id="output"></div>
       <div id="shop"></div>
       <div id="customise"></div>
       <div id="controls"></div>
     </div>
   </div>
-  
+  <div id="society-modal-bg">
+    <div id="society-modal">
+      <h4>🍕 Secret Pizza Society 🍕</h4>
+      <p id="society-mission-text"></p>
+      <button id="society-close-btn">Back to Game</button>
+    </div>
+  </div>
 <script>
     // --- Achievements and Easter Eggs
     const ACHIEVEMENTS = [
@@ -99,7 +146,33 @@
       { id: "saucecat", name: "Sauce Catastrophe", desc: "Spill sauce everywhere (special ending).", type: "egg" },
       { id: "pineappleparty", name: "Pineapple Party", desc: "Deliver a pineapple pizza in Party Ave.", type: "egg" },
       { id: "noorders", name: "Zen Master", desc: "Decline all orders in a day.", type: "egg" },
-      { id: "allbadges", name: "Pizza God", desc: "Unlock all achievements and eggs.", type: "egg" }
+      { id: "allbadges", name: "Pizza God", desc: "Unlock all achievements and eggs.", type: "egg" },
+      // NEW
+      { id: "society", name: "Initiate of the Underground", desc: "Complete a mission from the Secret Pizza Society.", type: "egg" }
+    ];
+
+    // --- Secret Society Missions
+    const SOCIETY_MISSIONS = [
+      {
+        text: "Deliver three pizzas in a row with only Pepperoni.",
+        check: (state) => state.societyPepperoniStreak >= 3,
+        reward: 40
+      },
+      {
+        text: "Make and deliver a pizza with every topping in one order.",
+        check: (state) => state.societyAllToppingsOnce,
+        reward: 50
+      },
+      {
+        text: "Deliver a pizza with only Pineapple and BBQ sauce.",
+        check: (state) => state.societyPineBBQ,
+        reward: 33
+      },
+      {
+        text: "Decline two orders in a row, then deliver a pizza immediately after.",
+        check: (state) => state.societyDeclineDeliver,
+        reward: 25
+      }
     ];
 
     // --- Upgrades available in the shop
@@ -228,7 +301,17 @@
         maxenergy: false,
         zenmaster: false,
         allbadges: false,
-        unlocked: getSavedAchievements() // use persisted achievements!
+        unlocked: getSavedAchievements(),
+        // Secret Society
+        societyAvailable: false,
+        societyMission: null, // {text, check, reward}
+        societyMissionGiven: false,
+        societyPepperoniStreak: 0,
+        societyAllToppingsOnce: false,
+        societyPineBBQ: false,
+        societyDeclineCount: 0,
+        societyDeclineDeliver: false,
+        societyCompleted: false // set true after a mission is completed
       };
     }
 
@@ -413,6 +496,7 @@
       document.getElementById('shop').innerHTML = '';
       pizzaMan.chosenNeighborhood = null;
       updateAchievementsFrame();
+      document.getElementById('society-btn').style.display = "none";
       const controlsDiv = document.getElementById('controls');
       controlsDiv.innerHTML = '<input type="text" id="nameInput" placeholder="Your name" style="font-size:1em;"> <button id="startBtn">Start</button>';
       document.getElementById('startBtn').onclick = () => {
@@ -434,13 +518,107 @@
       setCustomiseControls(true);
       document.getElementById('shop').innerHTML = '';
       updateAchievementsFrame();
+      document.getElementById('society-btn').style.display = "none";
       setControls(NEIGHBORHOODS.map(n => ({
         text: n.name,
         action: () => {
           pizzaMan.chosenNeighborhood = n;
+          checkSocietyAvail();
           gameLoop();
         }
       })));
+    }
+
+    function checkSocietyAvail() {
+      // 25% chance per day to get a mission, if not already completed one this day
+      if (!pizzaMan.societyCompleted && !pizzaMan.societyMissionGiven && Math.random() < 0.25) {
+        pizzaMan.societyAvailable = true;
+        pizzaMan.societyMissionGiven = false;
+        document.getElementById('society-btn').style.display = "";
+      }
+    }
+
+    function maybeShowSocietyButton() {
+      if (pizzaMan.societyAvailable && !pizzaMan.societyMissionGiven && !pizzaMan.societyCompleted) {
+        document.getElementById('society-btn').style.display = "";
+      } else {
+        document.getElementById('society-btn').style.display = "none";
+      }
+    }
+
+    function openSocietyModal() {
+      // Assign a random mission if none this day
+      if (!pizzaMan.societyMission) {
+        pizzaMan.societyMission = SOCIETY_MISSIONS[Math.floor(Math.random()*SOCIETY_MISSIONS.length)];
+        pizzaMan.societyMissionGiven = true;
+      }
+      document.getElementById('society-mission-text').textContent = pizzaMan.societyMission.text + "\nComplete this and return!";
+      document.getElementById('society-modal-bg').style.display = "flex";
+    }
+    function closeSocietyModal() {
+      document.getElementById('society-modal-bg').style.display = "none";
+      gameLoop();
+    }
+
+    document.getElementById('society-btn').onclick = openSocietyModal;
+    document.getElementById('society-close-btn').onclick = closeSocietyModal;
+
+    function updateSocietyProgressAfterPizza() {
+      // Update all mission flags if a mission is active
+      if (!pizzaMan.societyMission) return;
+
+      // 1: Pepperoni streak
+      if (pizzaMan.customToppings.length === 1 && pizzaMan.customToppings[0] === "Pepperoni") {
+        pizzaMan.societyPepperoniStreak = (pizzaMan.societyPepperoniStreak || 0) + 1;
+      } else {
+        pizzaMan.societyPepperoniStreak = 0;
+      }
+
+      // 2: All toppings once
+      if (["Pepperoni", "Mushrooms", "Onions", "Pineapple", "Olives"].every(tn => pizzaMan.customToppings.includes(tn))) {
+        pizzaMan.societyAllToppingsOnce = true;
+      }
+
+      // 3: Only Pineapple and BBQ
+      if (
+        pizzaMan.customToppings.length === 1 &&
+        pizzaMan.customToppings[0] === "Pineapple" &&
+        pizzaMan.customSauce === "BBQ"
+      ) {
+        pizzaMan.societyPineBBQ = true;
+      }
+    }
+
+    function updateSocietyProgressAfterDecline() {
+      // 4: Two declines, then deliver triggers after next pizza
+      pizzaMan.societyDeclineCount = (pizzaMan.societyDeclineCount || 0) + 1;
+      if (pizzaMan.societyDeclineCount > 2) pizzaMan.societyDeclineCount = 2;
+    }
+    function updateSocietyProgressAfterDelivery() {
+      if (pizzaMan.societyDeclineCount >= 2) {
+        pizzaMan.societyDeclineDeliver = true;
+      }
+      pizzaMan.societyDeclineCount = 0;
+    }
+
+    function checkSocietyMissionComplete() {
+      if (pizzaMan.societyMission && pizzaMan.societyMission.check(pizzaMan) && !pizzaMan.societyCompleted) {
+        pizzaMan.societyCompleted = true;
+        pizzaMan.societyAvailable = false;
+        pizzaMan.societyMissionGiven = false;
+        setTimeout(() => {
+          document.getElementById('society-modal-bg').style.display = "flex";
+          document.getElementById('society-mission-text').textContent =
+            "Mission accomplished!\nYou have been rewarded $" + pizzaMan.societyMission.reward + " by the Secret Pizza Society.\n(You also unlocked a secret achievement!)";
+          unlockAchievement("society");
+          pizzaMan.money += pizzaMan.societyMission.reward;
+          pizzaMan.societyMission = null;
+        }, 500);
+      }
+    }
+
+    function setSocietyButtonOnGameScreen() {
+      maybeShowSocietyButton();
     }
 
     function gameLoop() {
@@ -454,6 +632,8 @@
         return;
       }
       showStatus();
+
+      setSocietyButtonOnGameScreen();
 
       let promoBtn = {
         text: pizzaMan.promotion ? "Promotion Purchased" : "Buy Promotion ($100)",
@@ -505,6 +685,7 @@
 
     function takeOrder() {
       showStatus();
+      setSocietyButtonOnGameScreen();
       showOutput(
         `Order accepted!\nNeighborhood: ${pizzaMan.chosenNeighborhood.name}\nNow, make the pizza.`
       );
@@ -580,6 +761,7 @@
         pizzaMan.firstPizza = true;
         unlockAchievement("firstpizza");
       }
+      updateSocietyProgressAfterPizza();
       if (success) {
         // EASTER EGG: Only onions pizza
         if (
@@ -618,6 +800,7 @@
         );
         document.getElementById('shop').innerHTML = '';
         updateAchievementsFrame();
+        setSocietyButtonOnGameScreen();
         setControls([
           { text: "Deliver Pizza", action: () => { deliverPizza(bonus); } },
           { text: "Go to Shop", action: () => { setShopControls(makePizza); } }
@@ -644,6 +827,7 @@
           ]);
         }
       }
+      checkSocietyMissionComplete();
     }
 
     function deliverPizza(customBonus = 0) {
@@ -670,6 +854,9 @@
       pizzaMan.energy -= pizzaMan.deliveryEnergyCost;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
+
+      updateSocietyProgressAfterDelivery();
+      checkSocietyMissionComplete();
 
       // Ten orders achievement
       if (pizzaMan.ordersCompleted === 10 && !pizzaMan.tenOrders && !pizzaMan.unlocked["tenorders"]) {
@@ -709,6 +896,7 @@
       );
       document.getElementById('shop').innerHTML = '';
       updateAchievementsFrame();
+      setSocietyButtonOnGameScreen();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } },
@@ -728,6 +916,7 @@
       document.getElementById('shop').innerHTML = '';
       updateAchievementsFrame();
       setCustomiseControls(true);
+      document.getElementById('society-btn').style.display = "none";
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
       ]);
@@ -745,6 +934,7 @@
       showOutput("You take a break and feel refreshed!");
       document.getElementById('shop').innerHTML = '';
       updateAchievementsFrame();
+      setSocietyButtonOnGameScreen();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } },
@@ -758,6 +948,7 @@
       pizzaMan.hour++;
       pizzaMan.alwaysDeclined++;
       pizzaMan.declinedThisDay++;
+      updateSocietyProgressAfterDecline();
 
       // EASTER EGG: Always declining
       if (pizzaMan.alwaysDeclined === 5 && !pizzaMan.declineEasterEgg && !pizzaMan.unlocked["refuser"]) {
@@ -777,6 +968,7 @@
       );
       document.getElementById('shop').innerHTML = '';
       updateAchievementsFrame();
+      setSocietyButtonOnGameScreen();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } },
@@ -801,12 +993,13 @@
       );
       document.getElementById('shop').innerHTML = '';
       updateAchievementsFrame();
+      document.getElementById('society-btn').style.display = "none";
       setCustomiseControls(true);
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
       ]);
     }
-    
+
     // Start game on load
     pizzaMan = getDefaultState();
     updateAchievementsFrame();
