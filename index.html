@@ -19,6 +19,16 @@
     #shop ul { padding-left: 1.2em; }
     #shop li { margin-bottom: 0.2em; }
     #shop .owned { color: #33a333; }
+    #easter-egg-badge {
+      color: #fff;
+      background: #b22222;
+      font-weight: bold;
+      border-radius: 6px;
+      padding: 0.2em 0.6em;
+      margin-left: 0.8em;
+      font-size: 1em;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -57,6 +67,46 @@
       }
     ];
 
+    // Neighborhoods with unique traits
+    const NEIGHBORHOODS = [
+      {
+        id: "rich",
+        name: "Rich District",
+        desc: "High tips, picky customers, fancy toppings preferred.",
+        tipBonus: 12,
+        toppingPref: ["Olives", "Mushrooms", "Pepperoni"],
+        party: false,
+        student: false
+      },
+      {
+        id: "student",
+        name: "Student Quarter",
+        desc: "Low tips but simple orders. Loves onions and cheap toppings.",
+        tipBonus: -5,
+        toppingPref: ["Onions", "Pepperoni"],
+        party: false,
+        student: true
+      },
+      {
+        id: "party",
+        name: "Party Ave",
+        desc: "Wild parties, big orders, sometimes bonus for pineapple.",
+        tipBonus: 7,
+        toppingPref: ["Pineapple", "Pepperoni"],
+        party: true,
+        student: false
+      },
+      {
+        id: "downtown",
+        name: "Downtown",
+        desc: "Balanced crowd, all kinds of tips and tastes.",
+        tipBonus: 0,
+        toppingPref: [],
+        party: false,
+        student: false
+      }
+    ];
+
     // Game state
     let pizzaMan = {
       name: '',
@@ -69,34 +119,40 @@
       customToppings: [],
       customSauce: 'Tomato',
       upgrades: [],
-      // upgrade effects (default values)
       burnChance: 0.15, // default 15% burn
       deliveryEnergyCost: 10, // default 10
       boxBonus: 0,
-      // Special endings flags
       mayorDelivered: false,
-      spilledSauce: false
+      spilledSauce: false,
+      chosenNeighborhood: null,
+      // Easter eggs
+      onionPizzaCount: 0,
+      alwaysDeclined: 0,
+      onionEasterEgg: false,
+      declineEasterEgg: false
     };
 
     const TOPPINGS = [
       { name: "Pepperoni", bonus: 5 },
       { name: "Mushrooms", bonus: 3 },
       { name: "Onions", bonus: 2 },
-      { name: "Pineapple", bonus: 0 },
-      { name: "Blue cheese", bonus: 10 },
+      { name: "Pineapple", bonus: 10 },
       { name: "Olives", bonus: 4 }
     ];
     const SAUCES = [
-      { name: "Tomato", bonus: 5 },
-      { name: "BBQ", bonus: 10 },
-      { name: "No sauce", bonus: 0 },
-      { name: "ketchup", bonus: 4 }
+      { name: "Tomato", bonus: 0 },
+      { name: "BBQ", bonus: 7 },
+      { name: "White Sauce", bonus: 4 }
     ];
 
     function showStatus() {
-      document.getElementById('status').textContent =
-        `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}   |   Time: ${pizzaMan.hour}:00` +
-        (pizzaMan.promotion ? "   |   🏅 Promoted!" : "");
+      let egg = '';
+      if (pizzaMan.onionEasterEgg) egg += `<span id="easter-egg-badge">ONION LEGEND 🧅</span>`;
+      if (pizzaMan.declineEasterEgg) egg += `<span id="easter-egg-badge">THE REFUSER 🚫</span>`;
+      document.getElementById('status').innerHTML =
+        `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}   |   Time: ${pizzaMan.hour}:00`
+        + (pizzaMan.promotion ? "   |   🏅 Promoted!" : "")
+        + egg;
     }
 
     function showOutput(text, opts = {}) {
@@ -237,7 +293,12 @@
         deliveryEnergyCost: 10, // default 10
         boxBonus: 0,
         mayorDelivered: false,
-        spilledSauce: false
+        spilledSauce: false,
+        chosenNeighborhood: null,
+        onionPizzaCount: 0,
+        alwaysDeclined: 0,
+        onionEasterEgg: false,
+        declineEasterEgg: false
       };
       askNameScreen();
     }
@@ -247,15 +308,35 @@
       showOutput("Welcome to Pizza Life: A Day in the Life of a pizza maker!\nWhat's your name, Pizza Man?");
       document.getElementById('customise').innerHTML = '';
       document.getElementById('shop').innerHTML = '';
+      pizzaMan.chosenNeighborhood = null;
       const controlsDiv = document.getElementById('controls');
       controlsDiv.innerHTML = '<input type="text" id="nameInput" placeholder="Your name" style="font-size:1em;"> <button id="startBtn">Start</button>';
       document.getElementById('startBtn').onclick = () => {
         const val = document.getElementById('nameInput').value.trim();
         if (val.length > 0) {
           pizzaMan.name = val;
-          gameLoop();
+          chooseNeighborhood();
         }
       };
+    }
+
+    // Choose neighborhood for the day
+    function chooseNeighborhood() {
+      showStatus();
+      let txt = "Which part of town do you want to deliver to today?\n";
+      NEIGHBORHOODS.forEach(n => {
+        txt += `\n${n.name}: ${n.desc}`;
+      });
+      showOutput(txt);
+      setCustomiseControls(true);
+      document.getElementById('shop').innerHTML = '';
+      setControls(NEIGHBORHOODS.map(n => ({
+        text: n.name,
+        action: () => {
+          pizzaMan.chosenNeighborhood = n;
+          gameLoop();
+        }
+      })));
     }
 
     function gameLoop() {
@@ -292,7 +373,9 @@
       document.getElementById('shop').innerHTML = '';
 
       if (pizzaMan.energy < 35) {
-        showOutput("You look tired. Maybe take a break?");
+        showOutput(
+          `You look tired. Maybe take a break?\nDelivering in: ${pizzaMan.chosenNeighborhood.name} - ${pizzaMan.chosenNeighborhood.desc}`
+        );
         setControls([
           { text: "Rest", action: () => { rest(); } },
           { text: "End Day", action: () => { dayEnd(); } },
@@ -302,7 +385,9 @@
         return;
       }
 
-      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.\nCustomise your pizza below for possible bonuses!\nYou can visit the Shop at any time.`);
+      showOutput(
+        `It is now ${pizzaMan.hour}:00.\nYou are delivering in: ${pizzaMan.chosenNeighborhood.name}\nA customer wants to order a pizza.\nCustomise your pizza below for possible bonuses!\nYou can visit the Shop at any time.`
+      );
       setControls([
         { text: "Accept Order", action: () => { takeOrder(); } },
         { text: "Decline Order", action: () => { declineOrder(); } },
@@ -315,7 +400,9 @@
 
     function takeOrder() {
       showStatus();
-      showOutput("Order accepted!\nNow, make the pizza.");
+      showOutput(
+        `Order accepted!\nNeighborhood: ${pizzaMan.chosenNeighborhood.name}\nNow, make the pizza.`
+      );
       setCustomiseControls(true);
       document.getElementById('shop').innerHTML = '';
       setControls([
@@ -342,17 +429,35 @@
           }
         }
       });
+
+      // Neighborhood bonus for preferred toppings
+      pizzaMan.customToppings.forEach(tn => {
+        if (pizzaMan.chosenNeighborhood.toppingPref.includes(tn)) {
+          bonus += 3;
+        }
+      });
+
+      // Party Ave pineapple bonus!
+      if (pizzaMan.chosenNeighborhood.party && pizzaMan.customToppings.includes("Pineapple")) {
+        bonus += 7;
+      }
+
+      // Student onions bonus!
+      if (pizzaMan.chosenNeighborhood.student && pizzaMan.customToppings.includes("Onions")) {
+        bonus += 3;
+      }
+
       return bonus;
     }
 
-    // Special scenario: 0,1% chance for mayor delivery, 0,1% for sauce spill (once per play)
+    // Special scenario: 2% chance for mayor delivery, 2% for sauce spill (once per play)
     function checkSpecialDelivery() {
-      if (!pizzaMan.mayorDelivered && Math.random() < 0.001) {
+      if (!pizzaMan.mayorDelivered && Math.random() < 0.02) {
         pizzaMan.mayorDelivered = true;
         pizzaMan.dayOver = true;
         return "mayor";
       }
-      if (!pizzaMan.spilledSauce && Math.random() < 0.001) {
+      if (!pizzaMan.spilledSauce && Math.random() < 0.02) {
         pizzaMan.spilledSauce = true;
         pizzaMan.dayOver = true;
         return "sauce";
@@ -365,7 +470,25 @@
       let success = Math.random() >= pizzaMan.burnChance;
       pizzaMan.energy -= 5;
       if (success) {
-        // Show pizza image on successful pizza!
+        // EASTER EGG: Only onions pizza
+        if (
+          pizzaMan.customToppings.length === 1 &&
+          pizzaMan.customToppings[0] === "Onions"
+        ) {
+          pizzaMan.onionPizzaCount++;
+          if (pizzaMan.onionPizzaCount === 3 && !pizzaMan.onionEasterEgg) {
+            pizzaMan.onionEasterEgg = true;
+            showOutput(
+              "You made your third ONLY ONIONS pizza!\nEaster Egg Unlocked: 🧅 ONION LEGEND!\nThe Onion Society sends you a mysterious badge.",
+              { imgSrc: "image1" }
+            );
+            setControls([
+              { text: "Continue", action: () => { deliverPizza(calculateBonus()); } }
+            ]);
+            return;
+          }
+        }
+
         let bonus = calculateBonus();
         let bonusMsg = "";
         if (bonus > 0) bonusMsg = `\nPizza Customisation Bonus! +$${bonus}`;
@@ -405,14 +528,23 @@
     function deliverPizza(customBonus = 0) {
       // Check for special endings first!
       let special = checkSpecialDelivery();
-      if(special === "mayor") {
-        specialEnding(); return;
-      } else if(special === "sauce") {
-        specialEnding(); return;
+      if (special === "mayor") {
+        specialEnding();
+        return;
+      } else if (special === "sauce") {
+        specialEnding();
+        return;
       }
 
       showStatus();
+
+      // Neighborhood tip bonus
       let tip = Math.floor(Math.random() * 20) + 3;
+      tip += pizzaMan.chosenNeighborhood.tipBonus;
+
+      // Don't let tip go negative
+      if (tip < 0) tip = 0;
+
       let baseEarnings = 15 + tip;
       let promoBonus = pizzaMan.promotion ? 15 : 0;
       let fancyBoxBonus = pizzaMan.boxBonus;
@@ -430,7 +562,9 @@
       let promoMsg = pizzaMan.promotion ? `\nPromotion Bonus! +$${promoBonus}` : "";
       let customMsg = customBonus > 0 ? `\nCustom Pizza Bonus! +$${customBonus}` : "";
       let boxMsg = fancyBoxBonus > 0 ? `\nFancy Box Bonus! +$${fancyBoxBonus}` : "";
-      showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${promoMsg}${boxMsg}${customMsg}${rushEvent}`);
+      showOutput(
+        `Pizza delivered in ${pizzaMan.chosenNeighborhood.name}! You earned $15 and got a tip of $${tip}.${promoMsg}${boxMsg}${customMsg}${rushEvent}`
+      );
       document.getElementById('shop').innerHTML = '';
       setCustomiseControls(false);
       setControls([
@@ -473,7 +607,23 @@
       pizzaMan.energy -= 0;
       pizzaMan.money += 10;
       pizzaMan.hour++;
-      showOutput("Order declined. The customer is happy you did not make her fat. She gives you $10.");
+      pizzaMan.alwaysDeclined++;
+
+      // EASTER EGG: Always declining
+      if (pizzaMan.alwaysDeclined === 5 && !pizzaMan.declineEasterEgg) {
+        pizzaMan.declineEasterEgg = true;
+        showOutput(
+          "You have declined 5 orders in a row!\nEaster Egg Unlocked: 🚫 THE REFUSER!\nThe Anti-Pizza League sends you a badge.",
+        );
+        setControls([
+          { text: "Continue", action: () => { gameLoop(); } }
+        ]);
+        return;
+      }
+
+      showOutput(
+        `Order declined. The customer is happy you did not make her fat. She gives you $10.`
+      );
       document.getElementById('shop').innerHTML = '';
       setCustomiseControls(false);
       setControls([
@@ -485,7 +635,9 @@
     function dayEnd() {
       pizzaMan.dayOver = true;
       showStatus();
-      showOutput(`The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`);
+      showOutput(
+        `The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`
+      );
       document.getElementById('shop').innerHTML = '';
       setCustomiseControls(true);
       setControls([
