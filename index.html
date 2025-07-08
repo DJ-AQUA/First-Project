@@ -345,14 +345,14 @@
       return bonus;
     }
 
-    // Special scenario: 2% chance for mayor delivery, 2% for sauce spill (once per play)
+    // Special scenario: 0,1% chance for mayor delivery, 0,1% for sauce spill (once per play)
     function checkSpecialDelivery() {
-      if (!pizzaMan.mayorDelivered && Math.random() < 0.02) {
+      if (!pizzaMan.mayorDelivered && Math.random() < 0.001) {
         pizzaMan.mayorDelivered = true;
         pizzaMan.dayOver = true;
         return "mayor";
       }
-      if (!pizzaMan.spilledSauce && Math.random() < 0.02) {
+      if (!pizzaMan.spilledSauce && Math.random() < 0.001) {
         pizzaMan.spilledSauce = true;
         pizzaMan.dayOver = true;
         return "sauce";
