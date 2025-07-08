@@ -43,13 +43,13 @@
       { name: "Pepperoni", bonus: 5 },
       { name: "Mushrooms", bonus: 3 },
       { name: "Onions", bonus: 2 },
-      { name: "Pineapple", bonus: 10 },
+      { name: "Pineapple", bonus: 0 },
       { name: "Olives", bonus: 4 }
     ];
     const SAUCES = [
-      { name: "Tomato", bonus: 0 },
+      { name: "Tomato", bonus: 1 },
       { name: "BBQ", bonus: 7 },
-      { name: "White Sauce", bonus: 4 }
+      { name: "White Sauce", bonus: 0 }
     ];
 
     function showStatus() {
@@ -67,8 +67,8 @@
         img.id = 'pizza-image';
         img.src = opts.imgSrc;
         img.alt = "Pizza";
-        img.width = 128;
-        img.height = 128;
+        img.width = 2;
+        img.height = 2;
         outputDiv.appendChild(img);
       }
       // Add text below the image, if any
