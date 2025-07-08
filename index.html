@@ -5,7 +5,50 @@
   <title>Pizza Life: A Day in the Life of a Pizza Maker</title>
   <style>
     body { font-family: Arial, sans-serif; background: #fffbe7; margin: 0; padding: 0; }
-    #game-container { max-width: 500px; margin: auto; padding: 2em; background: #fff3c1; border-radius: 10px; margin-top: 3em; box-shadow: 0 4px 12px #0002; }
+    #main-layout { display: flex; max-width: 950px; margin: auto; }
+    #achievements-frame {
+      width: 250px;
+      min-width: 200px;
+      background: #ffe4a4;
+      border-radius: 10px 0 0 10px;
+      box-shadow: 2px 0 10px #0002;
+      padding: 1.3em 1em 1em 1.5em;
+      margin-top: 3em;
+      margin-bottom: 3em;
+      margin-right: 0.5em;
+      height: fit-content;
+    }
+    #achievements-frame h3 {
+      margin-top: 0;
+      color: #b85c00;
+      text-align: left;
+      font-size: 1.2em;
+      margin-bottom: 0.6em;
+    }
+    #achievements-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 1em;
+    }
+    #achievements-list li {
+      margin-bottom: 0.5em;
+      padding-left: 0.4em;
+      position: relative;
+    }
+    #achievements-list .locked {
+      color: #bbb;
+      font-style: italic;
+    }
+    #achievements-list .unlocked:before {
+      content: "🏆 ";
+      font-size: 1em;
+    }
+    #achievements-list .egg:before {
+      content: "🥚 ";
+      font-size: 1em;
+    }
+    #game-container { flex: 1; max-width: 700px; min-width: 340px; margin: auto; padding: 2em; background: #fff3c1; border-radius: 0 10px 10px 0; margin-top: 3em; box-shadow: 0 4px 12px #0002; }
     #output { min-height: 180px; white-space: pre-wrap; margin-bottom: 1em; }
     #pizza-image { display: block; margin: 1em auto; }
     button { margin: 0.3em 0.5em 0.3em 0; padding: 0.5em 1.5em; border-radius: 5px; border: none; background: #ff9e3d; color: #fff; font-size: 1em; cursor: pointer; }
@@ -19,30 +62,47 @@
     #shop ul { padding-left: 1.2em; }
     #shop li { margin-bottom: 0.2em; }
     #shop .owned { color: #33a333; }
-    #easter-egg-badge {
-      color: #fff;
-      background: #b22222;
-      font-weight: bold;
-      border-radius: 6px;
-      padding: 0.2em 0.6em;
-      margin-left: 0.8em;
-      font-size: 1em;
-      display: inline-block;
+    @media (max-width: 800px) {
+      #main-layout { flex-direction: column; }
+      #achievements-frame { width: 100%; margin: 0 0 1em 0; border-radius: 10px; }
+      #game-container { border-radius: 10px; }
     }
   </style>
 </head>
 <body>
-  <div id="game-container">
-    <h1>🍕 Pizza Life 🍕</h1>
-    <div id="status"></div>
-    <div id="output"></div>
-    <div id="shop"></div>
-    <div id="customise"></div>
-    <div id="controls"></div>
+  <div id="main-layout">
+    <div id="achievements-frame">
+      <h3>Achievements & Eggs</h3>
+      <ul id="achievements-list"></ul>
+    </div>
+    <div id="game-container">
+      <h1>🍕 Pizza Life 🍕</h1>
+      <div id="status"></div>
+      <div id="output"></div>
+      <div id="shop"></div>
+      <div id="customise"></div>
+      <div id="controls"></div>
+    </div>
   </div>
   
 <script>
-    // Upgrades available in the shop
+    // --- Achievements and Easter Eggs
+    const ACHIEVEMENTS = [
+      { id: "firstpizza", name: "First Pizza!", desc: "Make your very first pizza.", type: "normal" },
+      { id: "tenorders", name: "Pizza Hustler", desc: "Complete 10 pizza deliveries.", type: "normal" },
+      { id: "richman", name: "Fat Stacks", desc: "Earn $500 in one day.", type: "normal" },
+      { id: "allupgrades", name: "Fully Loaded", desc: "Own all shop upgrades.", type: "normal" },
+      { id: "maxenergy", name: "Rested Up", desc: "Reach 100 energy after resting.", type: "normal" },
+      { id: "onionlegend", name: "Onion Legend 🧅", desc: "Make 3 only-onion pizzas in one day.", type: "egg" },
+      { id: "refuser", name: "The Refuser 🚫", desc: "Decline 5 orders in a row.", type: "egg" },
+      { id: "mayor", name: "Mayor's Buddy", desc: "Deliver pizza to the mayor (special ending).", type: "egg" },
+      { id: "saucecat", name: "Sauce Catastrophe", desc: "Spill sauce everywhere (special ending).", type: "egg" },
+      { id: "pineappleparty", name: "Pineapple Party", desc: "Deliver a pineapple pizza in Party Ave.", type: "egg" },
+      { id: "noorders", name: "Zen Master", desc: "Decline all orders in a day.", type: "egg" },
+      { id: "allbadges", name: "Pizza God", desc: "Unlock all achievements and eggs.", type: "egg" }
+    ];
+
+    // --- Upgrades available in the shop
     const UPGRADES = [
       {
         id: "oven",
@@ -107,31 +167,6 @@
       }
     ];
 
-    // Game state
-    let pizzaMan = {
-      name: '',
-      money: 150,
-      energy: 100,
-      ordersCompleted: 0,
-      hour: 9, // 9 AM
-      dayOver: false,
-      promotion: false,
-      customToppings: [],
-      customSauce: 'Tomato',
-      upgrades: [],
-      burnChance: 0.15, // default 15% burn
-      deliveryEnergyCost: 10, // default 10
-      boxBonus: 0,
-      mayorDelivered: false,
-      spilledSauce: false,
-      chosenNeighborhood: null,
-      // Easter eggs
-      onionPizzaCount: 0,
-      alwaysDeclined: 0,
-      onionEasterEgg: false,
-      declineEasterEgg: false
-    };
-
     const TOPPINGS = [
       { name: "Pepperoni", bonus: 5 },
       { name: "Mushrooms", bonus: 3 },
@@ -145,20 +180,95 @@
       { name: "White Sauce", bonus: 4 }
     ];
 
+    // --- Game state
+    let pizzaMan = {};
+    let sessionState = {};
+
+    function getDefaultState() {
+      return {
+        name: '',
+        money: 150,
+        energy: 100,
+        ordersCompleted: 0,
+        hour: 9, // 9 AM
+        dayOver: false,
+        promotion: false,
+        customToppings: [],
+        customSauce: 'Tomato',
+        upgrades: [],
+        burnChance: 0.15, // default 15% burn
+        deliveryEnergyCost: 10, // default 10
+        boxBonus: 0,
+        mayorDelivered: false,
+        spilledSauce: false,
+        chosenNeighborhood: null,
+        // Achievements/eggs
+        onionPizzaCount: 0,
+        alwaysDeclined: 0,
+        declinedThisDay: 0,
+        onionEasterEgg: false,
+        declineEasterEgg: false,
+        pineappleParty: false,
+        allUpgrades: false,
+        firstPizza: false,
+        tenOrders: false,
+        richman: false,
+        maxenergy: false,
+        zenmaster: false,
+        allbadges: false,
+        unlocked: {} // achievement id -> true
+      };
+    }
+
+    function unlockAchievement(aid) {
+      if (!pizzaMan.unlocked[aid]) {
+        pizzaMan.unlocked[aid] = true;
+        updateAchievementsFrame();
+        // Alert for new achievement
+        const found = ACHIEVEMENTS.find(a => a.id === aid);
+        if (found) {
+          showOutput(`Achievement Unlocked!\n${found.name}\n${found.desc}`);
+          setControls([{ text: "Continue", action: () => { gameLoop(); } }]);
+        }
+      }
+      // Check for allbadges
+      if (
+        !pizzaMan.allbadges &&
+        ACHIEVEMENTS.filter(a => a.id !== "allbadges").every(a => pizzaMan.unlocked[a.id])
+      ) {
+        pizzaMan.allbadges = true;
+        pizzaMan.unlocked["allbadges"] = true;
+        updateAchievementsFrame();
+        showOutput("ULTIMATE ACHIEVEMENT!\nPizza God\nYou unlocked all achievements and eggs!");
+        setControls([{ text: "Continue", action: () => { gameLoop(); } }]);
+      }
+    }
+
+    function updateAchievementsFrame() {
+      const ul = document.getElementById('achievements-list');
+      ul.innerHTML = '';
+      ACHIEVEMENTS.forEach(a => {
+        const li = document.createElement('li');
+        if (pizzaMan.unlocked[a.id]) {
+          li.textContent = a.name + " – " + a.desc;
+          li.className = (a.type === "egg" ? "egg" : "unlocked");
+        } else {
+          li.textContent = a.name + " – " + a.desc;
+          li.className = "locked";
+        }
+        ul.appendChild(li);
+      });
+    }
+
     function showStatus() {
-      let egg = '';
-      if (pizzaMan.onionEasterEgg) egg += `<span id="easter-egg-badge">ONION LEGEND 🧅</span>`;
-      if (pizzaMan.declineEasterEgg) egg += `<span id="easter-egg-badge">THE REFUSER 🚫</span>`;
-      document.getElementById('status').innerHTML =
+      document.getElementById('status').textContent =
         `Money: $${pizzaMan.money}   |   Energy: ${pizzaMan.energy}/100   |   Orders: ${pizzaMan.ordersCompleted}   |   Time: ${pizzaMan.hour}:00`
-        + (pizzaMan.promotion ? "   |   🏅 Promoted!" : "")
-        + egg;
+        + (pizzaMan.promotion ? "   |   🏅 Promoted!" : "");
     }
 
     function showOutput(text, opts = {}) {
       const outputDiv = document.getElementById('output');
       outputDiv.innerHTML = ""; // Clear previous output
-      // If opts.imgSrc is provided, show the image first
       if (opts.imgSrc) {
         const img = document.createElement('img');
         img.id = 'pizza-image';
@@ -168,7 +278,6 @@
         img.height = 0;
         outputDiv.appendChild(img);
       }
-      // Add text below the image, if any
       const txt = document.createElement('div');
       txt.textContent = text;
       outputDiv.appendChild(txt);
@@ -190,8 +299,6 @@
       const customiseDiv = document.getElementById('customise');
       customiseDiv.innerHTML = '';
       const form = document.createElement('form');
-
-      // Sauce selection
       const sauceLabel = document.createElement('label');
       sauceLabel.textContent = 'Sauce:';
       form.appendChild(sauceLabel);
@@ -212,7 +319,6 @@
         form.appendChild(lbl);
       });
 
-      // Toppings selection
       const toppingsLabel = document.createElement('label');
       toppingsLabel.textContent = 'Toppings:';
       toppingsLabel.style.marginLeft = '1em';
@@ -257,8 +363,12 @@
           btn.onclick = () => {
             pizzaMan.money -= upg.cost;
             pizzaMan.upgrades.push(upg.id);
-            // Activate upgrade effect
             upg.effect(pizzaMan);
+            if (pizzaMan.upgrades.length === UPGRADES.length && !pizzaMan.allUpgrades) {
+              pizzaMan.allUpgrades = true;
+              unlockAchievement("allupgrades");
+            }
+            updateAchievementsFrame();
             showOutput(`You bought the ${upg.name}!`);
             setShopControls(backToGameCallback);
             showStatus();
@@ -271,35 +381,14 @@
         }
         list.appendChild(li);
       });
-      // Add Back to Game button
       setControls([
         { text: "Back to Game", action: backToGameCallback }
       ]);
     }
 
     function resetGame() {
-      pizzaMan = {
-        name: '',
-        money: 150,
-        energy: 100,
-        ordersCompleted: 0,
-        hour: 9,
-        dayOver: false,
-        promotion: false,
-        customToppings: [],
-        customSauce: 'Tomato',
-        upgrades: [],
-        burnChance: 0.15, // default 15% burn
-        deliveryEnergyCost: 10, // default 10
-        boxBonus: 0,
-        mayorDelivered: false,
-        spilledSauce: false,
-        chosenNeighborhood: null,
-        onionPizzaCount: 0,
-        alwaysDeclined: 0,
-        onionEasterEgg: false,
-        declineEasterEgg: false
-      };
+      pizzaMan = getDefaultState();
+      updateAchievementsFrame();
       askNameScreen();
     }
 
@@ -309,6 +398,7 @@
       document.getElementById('customise').innerHTML = '';
       document.getElementById('shop').innerHTML = '';
       pizzaMan.chosenNeighborhood = null;
+      updateAchievementsFrame();
       const controlsDiv = document.getElementById('controls');
       controlsDiv.innerHTML = '<input type="text" id="nameInput" placeholder="Your name" style="font-size:1em;"> <button id="startBtn">Start</button>';
       document.getElementById('startBtn').onclick = () => {
@@ -320,7 +410,6 @@
       };
     }
 
-    // Choose neighborhood for the day
     function chooseNeighborhood() {
       showStatus();
       let txt = "Which part of town do you want to deliver to today?\n";
@@ -330,6 +419,7 @@
       showOutput(txt);
       setCustomiseControls(true);
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
       setControls(NEIGHBORHOODS.map(n => ({
         text: n.name,
         action: () => {
@@ -371,6 +461,7 @@
 
       setCustomiseControls(false);
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
 
       if (pizzaMan.energy < 35) {
         showOutput(
@@ -405,6 +496,7 @@
       );
       setCustomiseControls(true);
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
       setControls([
         { text: "Make Pizza", action: () => { makePizza(); } },
         { text: "Rest", action: () => { rest(); } },
@@ -450,16 +542,17 @@
       return bonus;
     }
 
-    // Special scenario: 2% chance for mayor delivery, 2% for sauce spill (once per play)
     function checkSpecialDelivery() {
       if (!pizzaMan.mayorDelivered && Math.random() < 0.02) {
         pizzaMan.mayorDelivered = true;
         pizzaMan.dayOver = true;
+        unlockAchievement("mayor");
         return "mayor";
       }
       if (!pizzaMan.spilledSauce && Math.random() < 0.02) {
         pizzaMan.spilledSauce = true;
         pizzaMan.dayOver = true;
+        unlockAchievement("saucecat");
         return "sauce";
       }
       return null;
@@ -469,6 +562,10 @@
       showStatus();
       let success = Math.random() >= pizzaMan.burnChance;
       pizzaMan.energy -= 5;
+      if (!pizzaMan.firstPizza) {
+        pizzaMan.firstPizza = true;
+        unlockAchievement("firstpizza");
+      }
       if (success) {
         // EASTER EGG: Only onions pizza
         if (
@@ -478,6 +575,7 @@
           pizzaMan.onionPizzaCount++;
           if (pizzaMan.onionPizzaCount === 3 && !pizzaMan.onionEasterEgg) {
             pizzaMan.onionEasterEgg = true;
+            unlockAchievement("onionlegend");
             showOutput(
               "You made your third ONLY ONIONS pizza!\nEaster Egg Unlocked: 🧅 ONION LEGEND!\nThe Onion Society sends you a mysterious badge.",
               { imgSrc: "image1" }
@@ -488,7 +586,15 @@
             return;
           }
         }
-
+        // Pineapple party egg
+        if (
+          pizzaMan.chosenNeighborhood.party &&
+          pizzaMan.customToppings.includes("Pineapple") &&
+          !pizzaMan.pineappleParty
+        ) {
+          pizzaMan.pineappleParty = true;
+          unlockAchievement("pineappleparty");
+        }
         let bonus = calculateBonus();
         let bonusMsg = "";
         if (bonus > 0) bonusMsg = `\nPizza Customisation Bonus! +$${bonus}`;
@@ -497,6 +603,7 @@
           { imgSrc: "image1" }
         );
         document.getElementById('shop').innerHTML = '';
+        updateAchievementsFrame();
         setControls([
           { text: "Deliver Pizza", action: () => { deliverPizza(bonus); } },
           { text: "Go to Shop", action: () => { setShopControls(makePizza); } }
@@ -538,11 +645,8 @@
 
       showStatus();
 
-      // Neighborhood tip bonus
       let tip = Math.floor(Math.random() * 20) + 3;
       tip += pizzaMan.chosenNeighborhood.tipBonus;
-
-      // Don't let tip go negative
       if (tip < 0) tip = 0;
 
       let baseEarnings = 15 + tip;
@@ -552,6 +656,30 @@
       pizzaMan.energy -= pizzaMan.deliveryEnergyCost;
       pizzaMan.ordersCompleted += 1;
       pizzaMan.hour++;
+
+      // Ten orders achievement
+      if (pizzaMan.ordersCompleted === 10 && !pizzaMan.tenOrders) {
+        pizzaMan.tenOrders = true;
+        unlockAchievement("tenorders");
+      }
+      // Money achievement
+      if (pizzaMan.money >= 500 && !pizzaMan.richman) {
+        pizzaMan.richman = true;
+        unlockAchievement("richman");
+      }
+      // All upgrades
+      if (
+        pizzaMan.upgrades.length === UPGRADES.length &&
+        !pizzaMan.allUpgrades
+      ) {
+        pizzaMan.allUpgrades = true;
+        unlockAchievement("allupgrades");
+      }
+
+      // Pineapple party already checked in makePizza
+
+      // Max energy achievement (on rest)
+      // Zen Master: checked at day end
 
       let rushEvent = "";
       if (Math.random() < 0.4) {
@@ -566,6 +694,7 @@
         `Pizza delivered in ${pizzaMan.chosenNeighborhood.name}! You earned $15 and got a tip of $${tip}.${promoMsg}${boxMsg}${customMsg}${rushEvent}`
       );
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } },
@@ -573,7 +702,6 @@
       ]);
     }
 
-    // Show special endings if triggered in gameLoop or after delivery
     function specialEnding() {
       let text = "";
       if (pizzaMan.mayorDelivered) {
@@ -584,6 +712,7 @@
       showStatus();
       showOutput(text);
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
       setCustomiseControls(true);
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
@@ -592,10 +721,16 @@
 
     function rest() {
       showStatus();
+      let before = pizzaMan.energy;
       pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
       pizzaMan.hour++;
+      if (pizzaMan.energy === 100 && !pizzaMan.maxenergy) {
+        pizzaMan.maxenergy = true;
+        unlockAchievement("maxenergy");
+      }
       showOutput("You take a break and feel refreshed!");
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } },
@@ -608,10 +743,12 @@
       pizzaMan.money += 10;
       pizzaMan.hour++;
       pizzaMan.alwaysDeclined++;
+      pizzaMan.declinedThisDay++;
 
       // EASTER EGG: Always declining
       if (pizzaMan.alwaysDeclined === 5 && !pizzaMan.declineEasterEgg) {
         pizzaMan.declineEasterEgg = true;
+        unlockAchievement("refuser");
         showOutput(
           "You have declined 5 orders in a row!\nEaster Egg Unlocked: 🚫 THE REFUSER!\nThe Anti-Pizza League sends you a badge.",
         );
@@ -625,6 +762,7 @@
         `Order declined. The customer is happy you did not make her fat. She gives you $10.`
       );
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
       setCustomiseControls(false);
       setControls([
         { text: "Next Hour", action: () => { gameLoop(); } },
@@ -633,12 +771,22 @@
     }
 
     function dayEnd() {
+      // Zen Master: Decline all orders in a day
+      if (
+        pizzaMan.ordersCompleted === 0 &&
+        pizzaMan.declinedThisDay > 0 &&
+        !pizzaMan.zenmaster
+      ) {
+        pizzaMan.zenmaster = true;
+        unlockAchievement("noorders");
+      }
       pizzaMan.dayOver = true;
       showStatus();
       showOutput(
         `The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`
       );
       document.getElementById('shop').innerHTML = '';
+      updateAchievementsFrame();
       setCustomiseControls(true);
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
@@ -646,6 +794,8 @@
     }
     
     // Start game on load
+    pizzaMan = getDefaultState();
+    updateAchievementsFrame();
     askNameScreen();
   </script>
 </body>
