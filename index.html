@@ -182,7 +182,7 @@
       customiseDiv.appendChild(form);
     }
 
-    function setShopControls() {
+    function setShopControls(backToGameCallback) {
       const shopDiv = document.getElementById('shop');
       shopDiv.innerHTML = `<h3>🛒 Shop Upgrades</h3><ul></ul>`;
       const list = shopDiv.querySelector('ul');
@@ -202,17 +202,21 @@
             // Activate upgrade effect
             upg.effect(pizzaMan);
             showOutput(`You bought the ${upg.name}!`);
-            setShopControls();
+            setShopControls(backToGameCallback);
             showStatus();
             setCustomiseControls(false);
             setControls([
-              { text: "Continue", action: () => { gameLoop(); } }
+              { text: "Back to Game", action: backToGameCallback }
             ]);
           };
           li.appendChild(btn);
         }
         list.appendChild(li);
       });
+      // Add Back to Game button
+      setControls([
+        { text: "Back to Game", action: backToGameCallback }
+      ]);
     }
 
     function resetGame() {
@@ -274,7 +278,7 @@
           pizzaMan.money -= 100;
           pizzaMan.promotion = true;
           showOutput("Congratulations! You got a promotion. You will now earn extra money for every delivery!");
-          setShopControls();
+          document.getElementById('shop').innerHTML = '';
           setCustomiseControls(true);
           setControls([
             { text: "Continue", action: () => { gameLoop(); } }
@@ -283,24 +287,26 @@
       }
 
       setCustomiseControls(false);
-      setShopControls();
+      document.getElementById('shop').innerHTML = '';
 
       if (pizzaMan.energy < 35) {
         showOutput("You look tired. Maybe take a break?");
         setControls([
           { text: "Rest", action: () => { rest(); } },
           { text: "End Day", action: () => { dayEnd(); } },
+          { text: "Go to Shop", action: () => { setShopControls(gameLoop); } },
           promoBtn
         ]);
         return;
       }
 
-      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.\nCustomise your pizza below for possible bonuses!\nVisit the Shop to buy upgrades!`);
+      showOutput(`It is now ${pizzaMan.hour}:00.\nA customer wants to order a pizza.\nCustomise your pizza below for possible bonuses!\nYou can visit the Shop at any time.`);
       setControls([
         { text: "Accept Order", action: () => { takeOrder(); } },
         { text: "Decline Order", action: () => { declineOrder(); } },
         { text: "Rest", action: () => { rest(); } },
         { text: "End Day", action: () => { dayEnd(); } },
+        { text: "Go to Shop", action: () => { setShopControls(gameLoop); } },
         promoBtn
       ]);
     }
@@ -309,10 +315,11 @@
       showStatus();
       showOutput("Order accepted!\nNow, make the pizza.");
       setCustomiseControls(true);
-      setShopControls();
+      document.getElementById('shop').innerHTML = '';
       setControls([
         { text: "Make Pizza", action: () => { makePizza(); } },
-        { text: "Rest", action: () => { rest(); } }
+        { text: "Rest", action: () => { rest(); } },
+        { text: "Go to Shop", action: () => { setShopControls(takeOrder); } }
       ]);
     }
 
@@ -364,15 +371,16 @@
           "Pizza made successfully!\nTime to deliver it!" + bonusMsg,
           { imgSrc: "image1" }
         );
-        setShopControls();
+        document.getElementById('shop').innerHTML = '';
         setControls([
-          { text: "Deliver Pizza", action: () => { deliverPizza(bonus); } }
+          { text: "Deliver Pizza", action: () => { deliverPizza(bonus); } },
+          { text: "Go to Shop", action: () => { setShopControls(makePizza); } }
         ]);
       } else {
         // Firing logic: 0.01% chance (1 in 10,000)
         if (Math.random() <= 0.0001) {
           showOutput("Oh no! You burned the pizza... and your boss FIRED you on the spot!\nThe workday ends abruptly.");
-          setShopControls();
+          document.getElementById('shop').innerHTML = '';
           setCustomiseControls(true);
           setControls([
             { text: "Play Again", action: () => { resetGame(); } }
@@ -382,10 +390,11 @@
           pizzaMan.money -= 150;
           showOutput("Oh no! You burned the pizza. You still gave the pizza. The customer got sick. PAY THE HOSPITAL BILLS!");
           pizzaMan.hour++;
-          setShopControls();
+          document.getElementById('shop').innerHTML = '';
           setCustomiseControls(true);
           setControls([
-            { text: "Next Hour", action: () => { gameLoop(); } }
+            { text: "Next Hour", action: () => { gameLoop(); } },
+            { text: "Go to Shop", action: () => { setShopControls(gameLoop); } }
           ]);
         }
       }
@@ -420,10 +429,11 @@
       let customMsg = customBonus > 0 ? `\nCustom Pizza Bonus! +$${customBonus}` : "";
       let boxMsg = fancyBoxBonus > 0 ? `\nFancy Box Bonus! +$${fancyBoxBonus}` : "";
       showOutput(`Pizza delivered! You earned $15 and got a tip of $${tip}.${promoMsg}${boxMsg}${customMsg}${rushEvent}`);
-      setShopControls();
+      document.getElementById('shop').innerHTML = '';
       setCustomiseControls(false);
       setControls([
-        { text: "Next Hour", action: () => { gameLoop(); } }
+        { text: "Next Hour", action: () => { gameLoop(); } },
+        { text: "Go to Shop", action: () => { setShopControls(gameLoop); } }
       ]);
     }
 
@@ -437,7 +447,7 @@
       }
       showStatus();
       showOutput(text);
-      setShopControls();
+      document.getElementById('shop').innerHTML = '';
       setCustomiseControls(true);
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
@@ -449,10 +459,11 @@
       pizzaMan.energy = Math.min(100, pizzaMan.energy + 60);
       pizzaMan.hour++;
       showOutput("You take a break and feel refreshed!");
-      setShopControls();
+      document.getElementById('shop').innerHTML = '';
       setCustomiseControls(false);
       setControls([
-        { text: "Next Hour", action: () => { gameLoop(); } }
+        { text: "Next Hour", action: () => { gameLoop(); } },
+        { text: "Go to Shop", action: () => { setShopControls(gameLoop); } }
       ]);
     }
 
@@ -461,10 +472,11 @@
       pizzaMan.money += 10;
       pizzaMan.hour++;
       showOutput("Order declined. The customer is happy you did not make her fat. She gives you $10.");
-      setShopControls();
+      document.getElementById('shop').innerHTML = '';
       setCustomiseControls(false);
       setControls([
-        { text: "Next Hour", action: () => { gameLoop(); } }
+        { text: "Next Hour", action: () => { gameLoop(); } },
+        { text: "Go to Shop", action: () => { setShopControls(gameLoop); } }
       ]);
     }
 
@@ -472,7 +484,7 @@
       pizzaMan.dayOver = true;
       showStatus();
       showOutput(`The workday is over!\n\n${pizzaMan.name}'s results:\nMoney: $${pizzaMan.money}\nEnergy: ${pizzaMan.energy}/100\nOrders completed: ${pizzaMan.ordersCompleted}\n\nThanks for playing!`);
-      setShopControls();
+      document.getElementById('shop').innerHTML = '';
       setCustomiseControls(true);
       setControls([
         { text: "Play Again", action: () => { resetGame(); } }
