@@ -881,10 +881,6 @@
         zyRestCount >= (22 - 9 + 1) && !pizzaMan.unlocked["lazyone"]
         unlockAchievement("lazyone");
       }
-      // "Quiter" achievement: ended day immediately (on first screen)
-      if (userClickedEndDay && pizzaMan.hour === 9 && pizzaMan.ordersCompleted === 0 && !pizzaMan.unlocked["quiter"]) {
-        unlockAchievement("quiter");
-      }
 
       // Pineapple party already checked in makePizza
 
