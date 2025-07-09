@@ -134,7 +134,7 @@
   </div>
 <script>
     // --- Achievements and Easter Eggs
-    const ACHIEVEMENTS = [
+  const ACHIEVEMENTS = [
       { id: "firstpizza", name: "First Pizza!", desc: "Make your very first pizza.", type: "normal" },
       { id: "tenorders", name: "Pizza Hustler", desc: "Complete 10 pizza deliveries.", type: "normal" },
       { id: "richman", name: "Fat Stacks", desc: "Earn $500 in one day.", type: "normal" },
@@ -147,8 +147,9 @@
       { id: "pineappleparty", name: "Pineapple Party", desc: "Deliver a pineapple pizza in Party Ave.", type: "egg" },
       { id: "noorders", name: "Zen Master", desc: "Decline all orders in a day.", type: "egg" },
       { id: "allbadges", name: "Pizza God", desc: "Unlock all achievements and eggs.", type: "egg" },
-      // NEW
-      { id: "society", name: "Initiate of the Underground", desc: "Complete a mission from the Secret Pizza Society.", type: "egg" }
+      { id: "society", name: "Initiate of the Underground", desc: "Complete a mission from the Secret Pizza Society.", type: "egg" },
+      { id: "lazyone", name: "The Lazy one", desc: "Rest all day instead of working.", type: "egg" },
+      { id: "quiter", name: "Quiter", desc: "End the day immediately without doing anything.", type: "egg" }
     ];
 
     // --- Secret Society Missions
@@ -875,6 +876,13 @@
       ) {
         pizzaMan.allUpgrades = true;
         unlockAchievement("allupgrades");
+      }
+        zyRestCount >= (22 - 9 + 1) && !pizzaMan.unlocked["lazyone"]) {
+        unlockAchievement("lazyone");
+      }
+      // "Quiter" achievement: ended day immediately (on first screen)
+      if (userClickedEndDay && pizzaMan.hour === 9 && pizzaMan.ordersCompleted === 0 && !pizzaMan.unlocked["quiter"]) {
+        unlockAchievement("quiter");
       }
 
       // Pineapple party already checked in makePizza
